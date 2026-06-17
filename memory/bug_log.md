@@ -369,8 +369,8 @@
 
 | 指标               | 数值 |
 | ------------------ | :--: |
-| 总 BUG 数          |  35   |
-| 真 BUG（已修复）   |  40*  |
+| 总 BUG 数          |  41   |
+| 真 BUG（已修复）   |  46*  |
 | 真 BUG（待修复）   |  0    |
 > *BUG-029 含 6 个独立缺陷，BUG-027 含 3 个独立缺陷，BUG-032 含 3 个独立缺陷。全部 BUG 已修复完毕。
 | DEFERRED（假 BUG） |  0   |
@@ -407,8 +407,61 @@
 - [ ] **Vue 3 `provide/inject` 方向为父→子。子组件 provide 的值父组件无法 inject。跨层级通信应使用模块级单例状态**（教训：BUG-033）
 - [ ] **`toBeGreaterThanOrEqual(0)` 是 E2E 最常见假通过模式——`.count()` 永不为负数。禁止在 E2E 中使用此模式**（教训：BUG-034）
 - [ ] **CM6 ViewPlugin 的 `destroy()` 必须清理所有在构造函数中注册的外部资源（DOM 监听器/rAF/定时器）。框架不自动管理这些**（教训：BUG-035）
+- [ ] **localStorage 序列化格式变更必须保持向后兼容。读取逻辑应同时处理新旧两种格式，写入统一为新格式**（教训：BUG-040）
+- [ ] **模态对话框的关闭方式必须包含三要素：遮罩点击 + Escape 键 + 关闭按钮。新增对话框时对照 ShareDialog 模板检查**（教训：BUG-041）
+- [ ] **IndexService 的增量操作方法（updateDocument/removeDocument）必须同时更新 allDocuments、tagIndex、wikiOutgoing/Incoming、recentNotesList、SearchEngine 五个维度**（教训：BUG-042）
+- [ ] **UI 文本变更后必须 grep 所有 E2E 测试中的 `hasText` / `filter({ hasText })` 选择器**（教训：BUG-044）
+- [ ] **始终渲染（无 v-if）但动态内容的 fixed 容器需要 min-height/min-width 保证布局稳定性，否则 Playwright toBeVisible() 会因 0x0 尺寸失败**（教训：BUG-045）
 
 ---
+
+## BUG-040: 主题 localStorage 存储格式与测试期望不一致
+
+- **现象**: E2E 测试 `04-theme-settings-panels` 用例 02-03 断言 `localStorage.getItem('markluck-theme')` 为纯字符串 `'dark'`，实际存储为 `{"c":"dark"}`
+- **根因**: `stores/theme.ts:49` — `apply()` 使用 `JSON.stringify({ c: colorScheme.value })` 序列化；测试期望纯字符串
+- **根因类别**: 状态管理
+- **修复**: (1) `apply()` 改为直接存储 `colorScheme.value` 字符串；(2) `init()` 兼容读取两种格式（先直接字符串检查，再 JSON 解析兜底）
+- **教训**: localStorage 序列化格式是隐式 API 契约。测试断言的格式即是消费者期望的格式。存储格式变更时必须同步更新读取逻辑并保持向后兼容
+
+## BUG-041: Escape 键不关闭设置/导出对话框
+
+- **现象**: E2E 测试按 Escape 键后 SettingsDialog 和 ExportDialog 不关闭，`modal-overlay` 仍可见
+- **根因**: `SettingsDialog.vue:3` 和 `ExportDialog.vue:3` 仅在 `div.modal-overlay` 上绑定了 `@click.self`，缺少 `@keydown.escape` 处理器
+- **根因类别**: 渲染管线（交互缺失）
+- **修复**: 两文件各加 `@keydown.escape="close"` / `@keydown.escape="cancel"`（参考已正确实现的 ShareDialog 和 TemplateDialog）
+- **教训**: 模态对话框的关闭方式矩阵为 {遮罩点击, Escape 键, 关闭按钮} 三项，缺一不可。新增对话框时必须对照已有模板检查
+
+## BUG-042: 创建笔记后书签圆点不更新
+
+- **现象**: 新建/模板创建笔记后，左翼 56px 书签栏不出现新笔记的彩色圆点，E2E 切换笔记测试超时
+- **根因**: `IndexService.updateDocument()` 和 `removeDocument()` 更新了 allDocuments/tagIndex/搜索引擎，但从未更新 `this.recentNotesList`。`getRecentNotes()` 始终返回 `buildFullIndex()` 时的静态快照
+- **根因类别**: 状态管理（数据流断裂：索引增量更新 → 最近笔记列表未连接）。与 BUG-008 同模式
+- **修复**: `updateDocument()` 中 filter+unshift+sort+slice 将新路径插入头部（限 20 条）；`removeDocument()` 中 filter 移除对应条目
+- **教训**: 索引的五个维度（documents, tags, backlinks, recentNotes, searchEngine）在增量操作中必须全部更新。`buildFullIndex` 是初始化的全面填充，增量方法也必须全面——任何维度的遗漏都会导致视图层拿到过期数据
+
+## BUG-043: 书签 active 状态缺失
+
+- **现象**: 点击新创建的笔记后，对应书签圆点无 active ring 动画，`.wing-bookmark-dot.active` 选择器匹配不到
+- **根因**: BUG-042 的直接后果 — 没有圆点 DOM 元素可应用 active 类。activePath 传递链（NotebookHome→AppShell→LeftWing）和比较逻辑本身正确
+- **根因类别**: 状态管理（级联失效）
+- **修复**: BUG-042 修复后自动解决（无独立代码变更）
+- **教训**: 当 BUG 表现为"某个 UI 状态不更新"时，应先检查数据源是否可到达，再检查 CSS 类名/条件。数据源缺失的 BUG（如 BUG-042）会产生连锁表象 BUG
+
+## BUG-044: 右侧面板区段折叠 E2E 测试选择器文本不匹配
+
+- **现象**: 测试 14/18/19/20 点击区段标题后断言 `section-body` 可见性失败，超时
+- **根因**: E2E 测试使用 `hasText: '目录'` 和 `hasText: '反向链接'`，模板实际文本为 `大纲` 和 `反链`。`filter({ hasText })` 子串匹配无法匹配这些语义相近但文字不同的词
+- **根因类别**: 类型边界（测试-UI 文本不一致）
+- **修复**: 4 处选择器文本对齐模板：`'目录'`→`'大纲'`，`'反向链接'`→`'反链'`
+- **教训**: UI 文本是测试的隐式 API。组件重构时改变 section label 文本后，必须 grep 所有 E2E 测试中的对应 `hasText` 选择器
+
+## BUG-045: Toast 空容器 Playwright toBeVisible() 失败
+
+- **现象**: E2E 测试 13-toast 用例 01/03 断言 `.toast-container` 和 `.toast-stack` 可见失败，返回 hidden
+- **根因**: `.toast-container` 和 `.toast-stack` 无 toast 时始终渲染（无 v-if），但 CSS 无 min-height/min-width，导致 0×0 尺寸。Playwright `toBeVisible()` 要求元素有非零边界框
+- **根因类别**: 渲染管线（CSS 布局边界情况）
+- **修复**: `.toast-container` 添加 `min-height: 1px; min-width: 1px`
+- **教训**: 始终渲染（无 v-if）但动态内容的 `position: fixed` 容器需要 min-height/min-width 保证布局稳定性。空容器对 Playwright 是不可见的
 
 ## BUG-030: Ghost Text 格式闭合预测级联
 
