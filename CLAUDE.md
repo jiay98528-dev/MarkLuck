@@ -109,7 +109,7 @@ M0-M6 已完成（总进度 ~90%），当前聚焦 M7 打磨与发布 + M6 Tauri
 | 2   | `doc/PRD.md`                     | 产品需求规格                           |  ✅  |
 | 3   | `doc/TAD.md`                     | 技术架构设计                           |  ✅  |
 | 4   | `spec/decisions.md`              | 架构决策记录 (ADR)                     |  ✅  |
-| 5   | `spec/frontend/design-system.md` | CSS Design Token 定义（⚠ 待更新：代码已迁移至Paper/OKLCH体系） |  ⚠️  |
+| 5   | `spec/frontend/design-system.md` | CSS Design Token 定义（v2.0 Paper/OKLCH ✅） |  ✅  |
 | 6   | `spec/milestones.md`             | 里程碑拆分与进度（M0-M9）              |  ✅  |
 | 7   | `memory/bug_log.md`              | 错题本                                 |  ✅  |
 | 8   | `packages/app/src/assets/styles/tokens.css` | 实际 Design Token 定义（纸张隐喻/OKLCH/三层动效） |  ✅  |
@@ -947,14 +947,12 @@ MarkLuck/
 │   │   │   ├── main.ts          # 应用入口
 │   │   │   ├── App.vue          # 根组件
 │   │   │   ├── components/      # Vue 组件
-│   │   │   │   ├── common/      # 通用 UI 组件 (Modal/Toast/Dropdown...)
-│   │   │   │   ├── editor/      # 编辑器组件 (MarkdownEditor/FormatToolbar...)
-│   │   │   │   ├── file-tree/   # 文件树组件 (FileTree/FileSidebar...)
-│   │   │   │   ├── layout/      # 布局组件 (AppLayout/EditorArea...)
-│   │   │   │   ├── modals/      # 对话框组件 (Export/Share/Template...)
-│   │   │   │   ├── nav/         # 导航组件 (NavTree...)
-│   │   │   │   ├── panels/      # 面板组件 (Backlinks/Tags/RecentNotes...)
-│   │   │   │   └── search/      # 搜索组件 (SearchPanel/SearchInput...)
+│   │   │   │   ├── common/      # 通用 UI 组件 (Button/ContextMenu/Toast)
+│   │   │   │   ├── editor/      # 编辑器组件 (MarkdownEditor/FormatBubble/TopBar...)
+│   │   │   │   ├── file-tree/   # 文件树组件 (Breadcrumb...)
+│   │   │   │   ├── layout/      # 布局组件 (AppShell/LeftWing/RightWing...)
+│   │   │   │   ├── modals/      # 对话框组件 (Export/Share/Template/Settings...)
+│   │   │   │   └── overlays/    # 浮层组件 (FileDrawer/CommandPalette/MarkdownCheatSheet...)
 │   │   │   ├── pages/           # 页面组件
 │   │   │   ├── stores/          # Pinia 状态管理
 │   │   │   ├── services/        # 业务服务 (MockFS/Exporter/Search...)
@@ -966,6 +964,7 @@ MarkLuck/
 │   │   │       ├── main.css     # 全局样式入口
 │   │   │       ├── accessibility.css  # 无障碍样式
 │   │   │       ├── editor.css   # 编辑器样式（含 ghost text）
+│   │   │       ├── dialog.css   # 对话框/模态框样式
 │   │   │       └── themes/
 │   │   │           └── paper.css # Paper 主题（亮+暗，纯 OKLCH）
 │   │   ├── src-tauri/           # Tauri v2 Rust 后端
@@ -993,10 +992,20 @@ MarkLuck/
 │
 ├── e2e/                         # E2E 测试
 │   └── tests/
-│       ├── editor.spec.ts
-│       ├── search.spec.ts
-│       ├── export.spec.ts
-│       └── ...
+│       ├── 01-editor-core.spec.ts
+│       ├── 02-file-operations.spec.ts
+│       ├── 03-search.spec.ts
+│       ├── 04-theme-settings-panels.spec.ts
+│       ├── 05-export-share.spec.ts
+│       ├── 06-security.spec.ts
+│       ├── 07-persistence.spec.ts
+│       ├── 08-edge-cases.spec.ts
+│       ├── 09-wiki-link.spec.ts
+│       ├── 10-templates.spec.ts
+│       ├── 11-onboarding.spec.ts
+│       ├── 12-cheatsheet.spec.ts
+│       ├── 13-toast.spec.ts
+│       └── 14-live-preview-journey.spec.ts
 │
 ├── .github/workflows/           # CI 配置
 ├── pnpm-workspace.yaml
