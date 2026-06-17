@@ -92,5 +92,5 @@ dist/assets/SettingsPage-C3tSJijC.js  0.15 kB │ gzip: 0.15 kB
 dist/assets/NotFoundPage-CWNsGcsJ.js  0.15 kB │ gzip: 0.15 kB
 dist/assets/index-D4m1pP4D.js        89.62 kB │ gzip: 35.04 kB
 
-✅ Bundle 体积在 100 kB gzip 限制内
+✅ Bundle 体积在 30 MB gzip 限制内
 ```
