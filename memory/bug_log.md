@@ -539,4 +539,22 @@
 
 ---
 
+## BUG-046: E2E 持久化测试 — 书签 aria-label 在内容替换后变化
+
+- **现象**: 3 个持久化测试（V3 刷新后保持、V3 切换切回、V6 多次刷新）在 `page.reload()` 后 `switchToNote(原标题)` 超时 30s，找不到匹配的书签圆点
+- **根因**: `extractTitle()` 只匹配 `# H1` 标题行。`typeInEditor` 使用 Ctrl+A+Backspace 清除全部内容（含原标题 H1），然后输入 `## H2` 或 `### H3` 测试标记。`refreshDocument → updateDocument → extractTitle()` 找不到 H1 → 回退到文件名作为 title。书签圆点 `aria-label` 从原标题（如"子文件夹笔记"）变为文件名（如"笔记A"）。测试在刷新前保存的 `firstLabel` 在刷新后不再有效。
+- **根因类别**: 类型边界（测试与 `extractTitle` 行为假设不一致）
+- **修复**: 3 个测试改用 `# H1` 标记 + 在 `waitForAutoSave` 后重新读取 active dot 的 `aria-label` 用于刷新后查找（而非使用 `typeInEditor` 前的 label）
+- **教训**: **当测试用 `typeInEditor`（Ctrl+A+Backspace 全量替换）时，必须考虑内容替换对元数据（标题）的影响。** `extractTitle` 只读 H1 的约定需要通过测试策略体现：要么用 H1 标记，要么保存后的 label 重新读取
+
+## BUG-047: FileDrawer 删除文件后 overlay 未关闭 — 测试阻塞
+
+- **现象**: V6 删除重建测试中，通过 FileDrawer 右键删除文件后，drawer-overlay 仍覆盖全视口。后续点击 `.wing-new-btn` 被 overlay 拦截，测试超时 90s
+- **根因**: `FileDrawer.handleContextMenuDelete()` 调用 `closeContextMenu()` 后仅 emit `delete-file`，未调用 `close()`。文件删除后 drawer 仍保持打开状态。测试层面，`@keydown.escape` 绑定在 `.drawer-overlay` 上但该元素缺少 `tabindex`，键盘事件无法到达（与 BUG-041 同模式）。`@click.self="close"` 需要点击在 overlay 自身（非子元素）上才能触发
+- **根因类别**: 状态管理（组件状态未在操作完成后重置）+ 渲染管线（键盘事件可达性）
+- **修复**: （测试层）在验证删除完成后，通过点击 overlay 右侧区域（`position: { x: 600, y: 300 }`，drawer panel 宽度 ~300px 之外）触发 `@click.self="close"` 关闭 drawer。**建议软件层修复**: `handleContextMenuDelete` 末尾调用 `close()`，或在 overlay 添加 `tabindex="-1"` 使 Escape 键可关闭
+- **教训**: **`@keydown` 绑定在无 `tabindex` 的 `<div>` 上不可靠。** 需要通过键盘关闭的 overlay 必须有 `tabindex="-1"` + 打开时 `focus()`（与 BUG-041 相同根因）。另外，FileDrawer 中任何破坏性操作（删除/重命名）完成后都应考虑关闭 drawer
+
+---
+
 > 关联文档：`CLAUDE.md` §5.0（错题本必读）、§5.6（BUG 修复前置规则）、§5.9（代码审查易错点）
