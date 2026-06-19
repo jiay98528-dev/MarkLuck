@@ -367,16 +367,17 @@
 
 ## 统计
 
-| 指标               | 数值 |
-| ------------------ | :--: |
-| 总 BUG 数          |  41   |
-| 真 BUG（已修复）   |  46*  |
-| 真 BUG（待修复）   |  0    |
-> *BUG-029 含 6 个独立缺陷，BUG-027 含 3 个独立缺陷，BUG-032 含 3 个独立缺陷。全部 BUG 已修复完毕。
-| DEFERRED（假 BUG） |  0   |
+| 指标             | 数值 |
+| ---------------- | :--: |
+| 总 BUG 数        |  41  |
+| 真 BUG（已修复） | 46\* |
+| 真 BUG（待修复） |  0   |
 
-| 指标               | 数值 |
-| ------------------ | :--: |
+> \*BUG-029 含 6 个独立缺陷，BUG-027 含 3 个独立缺陷，BUG-032 含 3 个独立缺陷。全部 BUG 已修复完毕。
+> | DEFERRED（假 BUG） | 0 |
+
+| 指标 | 数值 |
+| ---- | :--: |
 
 ## 检查清单
 
@@ -536,6 +537,14 @@
 - **根因类别**: 渲染管线 / 状态管理
 - **修复**: `cm6-live-preview.ts` 统一将 `view.composing` / `view.compositionStarted` 纳入 IME active 判定；普通点击 `.cm-live-block` 时通过 `data-block-key` 显式定位到源码 block 起点并聚焦；光标所在空行的相邻块不做 `Decoration.replace`，避免换行后 IME 锚点回落上一行；`toggleBlockRender()` / `unpinFocusedBlock()` 的焦点判断包含行尾；`cm6-ghost-text.ts` 在接受 ghost 前先清空插件状态和 pending timer，避免 `dispatch()` 同步触发旧建议重入；`NotebookHome.vue` 移除视图切换按钮的 `activePath` 条件，并改为监听 `[activePath, viewMode]` 重连 predictor。
 - **教训**: IME 防护必须覆盖 CM6 状态、DOM composition 事件、transaction 注解和所有异步重建入口；`Decoration.replace` widget 的 DOM 定位不能用于编辑入口，用户点击 rendered block 时必须显式映射到文档位置；空白文档也是编辑器状态，不能用 `activePath` 作为视图能力开关。
+
+## BUG-048: IME 在标题换行及格式编辑后发生输入回跳、吞字符和渲染块漂移
+
+- **现象**: 标题后按 Enter 并立即使用中文输入法时，首个临时字符概率性回跳到标题行末并取消输入，中文标点被吞一到两次，Markdown 符号可能不隐藏；中文输入法介入格式编辑后，文本还会概率性闪烁并失焦，随后连续按 Backspace 时内容复制到文末或随机下方行。
+- **根因**: 标题后插入换行的同一次更新中，`cm6-live-preview.ts` 立即用 `Decoration.replace` 将上一行替换成 Widget，Chrome 在紧随其后的 `compositionstart` 前丢失新空行 DOM 输入锚点；IME 活跃时停止重建 `DecorationSet`，但文档变化后没有用 `update.changes` 映射旧装饰位置，导致 Widget 持有旧坐标并漂移；`compositionend` 延迟重建与紧随其后的标点或 Backspace 同步重建并行；`cm6-ghost-text.ts` 同时保留 composition 延迟预测和普通输入防抖预测，可能生成两次 stale ghost widget。
+- **根因类别**: 渲染管线 / 跨平台兼容
+- **修复**: 光标位于格式块下一空行时，该相邻块保持源码状态，不执行 `Decoration.replace`；当下一行出现实际文本、光标离开或 composition 结束后再恢复即时渲染，从状态上消除 IME 建立锚点前的竞态，不依赖延迟时间。IME 活跃和冷却窗口内的文档变化统一执行 `decorations.map(update.changes)`；冷却窗口内的标点、Backspace 和 Delete 只续期同一个重建任务；ghost text 在任意文档或选区变化时同时取消普通防抖与 composition 延迟预测，再创建唯一任务。
+- **教训**: 输入法防护必须从 `compositionstart` 前一个可能改变 DOM 锚点的事务开始，计时器只能降低复现概率，不能作为正确性约束；暂停 Decoration 重建不等于可以保留原坐标，任何 `docChanged` 都必须 map 现有 DecorationSet；composition 冷却任务必须具备去重和续期语义，不能与后续输入并行修改 Widget DOM。
 
 ---
 
