@@ -546,6 +546,18 @@
 - **修复**: 光标位于格式块下一空行时，该相邻块保持源码状态，不执行 `Decoration.replace`；当下一行出现实际文本、光标离开或 composition 结束后再恢复即时渲染，从状态上消除 IME 建立锚点前的竞态，不依赖延迟时间。IME 活跃和冷却窗口内的文档变化统一执行 `decorations.map(update.changes)`；冷却窗口内的标点、Backspace 和 Delete 只续期同一个重建任务；ghost text 在任意文档或选区变化时同时取消普通防抖与 composition 延迟预测，再创建唯一任务。
 - **教训**: 输入法防护必须从 `compositionstart` 前一个可能改变 DOM 锚点的事务开始，计时器只能降低复现概率，不能作为正确性约束；暂停 Decoration 重建不等于可以保留原坐标，任何 `docChanged` 都必须 map 现有 DecorationSet；composition 冷却任务必须具备去重和续期语义，不能与后续输入并行修改 Widget DOM。
 
+## BUG-049: Live Preview 静态 IME 守卫过度惩罚非 IME 编辑体验
+
+- **现象**: 带格式的行按 Enter 换行后，格式符号不隐藏，需连续换行两次（中间有空行）才能渲染。光标移到格式化行的下一行（空行）会导致上一行格式符号重新出现。在下一行输入正文可恢复渲染，但清空该行后格式符号又出现
+- **根因**: `cm6-live-preview.ts:900-903` — `touchesEmptyCursorLine` 静态守卫：只要光标在空行且该空行紧邻上方格式化块末尾，该块就保持源码模式。此守卫在 IME 五连 BUG（032/036/038/039/048）修复中与 `EDIT_CONTEXT=false` 一同引入，作为 IME 竞态防御。但它是静态条件（不区分 IME 是否真正活跃），对所有场景平等惩罚
+- **根因类别**: 渲染管线（IME 安全守卫过度激进）
+- **修复**: 三层防御替代单一静态守卫：
+  1. **移除** `touchesEmptyCursorLine` 静态条件（`build()` 中直接检查 `isFocused || isPinned`）
+  2. **新增** `contentEditable='false'` 到 `RenderedBlockWidget.toDOM()` — 在 DOM 层创建 IME 隔离边界，浏览器不会跨越 contentEditable 孤岛进行 composition
+  3. **保留** `EDIT_CONTEXT=false`（根因修复）+ `isImeActive()` 会话保护 + `compositionRebuildTimer` 恢复
+  E2E Test 11 断言同步更新：`toHaveCount(0)` → `toHaveCount(1)`（Enter 后应立即渲染）
+- **教训**: 静态守卫治标不治本——它用 UX 代价换取安全，且因为 `build()` 在 IME 活跃期间根本不会被调用，静态守卫的实际防护价值为零。正确的做法是在 DOM 层面创建浏览器原生 IME 边界（`contentEditable=false`），让 widget 对 IME "不可见"，而非阻止 widget 创建
+
 ---
 
 ## BUG-046: E2E 持久化测试 — 书签 aria-label 在内容替换后变化
