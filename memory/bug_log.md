@@ -573,10 +573,10 @@
 ## BUG-052: IME 中间值回传覆盖后续中文标点
 
 - **现象**: 中文输入法下首次输入标点可能被吞，需要再次按键才能写入；格式操作后更容易出现。
-- **根因**: `MarkdownEditor` 将每个 composition 中间文档值 emit 给父组件，父组件回传为 `modelValue` 时仅用“是否等于当前文档”判断是否同步；同时 `EditorView.updateListener` 与 DOM `keyup/mouseup/paste` 监听器重复执行同步，快速输入中旧中间值可能晚于下一次标点事务返回并全量覆盖文档。格式按钮点击后未恢复焦点进一步放大输入取消概率。
+- **根因**: （1）`MarkdownEditor` 将每个 composition 中间文档值 emit 给父组件，父组件回传为 `modelValue` 时仅用”是否等于当前文档”判断是否同步；同时 `EditorView.updateListener` 与 DOM `keyup/mouseup/paste` 监听器重复执行同步，快速输入中旧中间值可能晚于下一次标点事务返回并全量覆盖文档。格式按钮点击后未恢复焦点进一步放大输入取消概率。（2）**残留根因（本次修复）**：`FormatToolbar` 所有按钮均使用 `@mousedown.prevent` 阻止焦点转移，导致 IME 保持活跃时点击格式按钮 → `applyPendingFormat` 无 `view.composing` 检查 → `view.dispatch()` 在 composition 进行中直接插入格式标记字符 → 破坏 CM6 的 composition 事务 → 首个输入字符被吞。
 - **根因类别**: 状态管理 / 跨平台兼容
-- **修复**: 记录 EditorView 内部发出的最近文档值，watch 收到自身回声时直接忽略；移除重复的 DOM 同步监听器，以 `EditorView.updateListener` 作为唯一内容同步入口；格式事务完成后显式恢复 EditorView 焦点和正文选区。
-- **教训**: 双向绑定的编辑器必须区分内部回声与真实外部更新；IME 期间不能只靠字符串“当前是否相等”判断同步方向。
+- **修复**: （第一轮）记录 EditorView 内部发出的最近文档值，watch 收到自身回声时直接忽略；移除重复的 DOM 同步监听器，以 `EditorView.updateListener` 作为唯一内容同步入口；格式事务完成后显式恢复 EditorView 焦点和正文选区。（第二轮）`applyPendingFormat` 入口增加 `view.composing || view.compositionStarted` 守卫；IME 活跃时将格式变更推迟到 `compositionend` 后执行（`setTimeout(0)` 确保 CM6 完全退出 composition 状态再 dispatch）。
+- **教训**: 双向绑定的编辑器必须区分内部回声与真实外部更新；IME 期间不能只靠字符串”当前是否相等”判断同步方向；`@mousedown.prevent` 的副作用是编辑器保持焦点 → IME 保持活跃 → 任何 document dispatch 都会破坏 composition 事务。
 
 ## BUG-053: 分栏预览首行被遮挡、逐行产生额外段距且源码区带渲染样式
 
