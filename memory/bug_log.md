@@ -673,3 +673,15 @@
 - [ ] CM6 `Decoration.replace` widget 内的可点击状态控件，应优先在捕获阶段完成文档写回，避免 DOM 被 CM6 先替换。
 - [ ] 可点击卡片内若存在删除/更多等独立动作，不允许使用 button 嵌套 button。
 - [ ] live preview 的 IME 验证必须覆盖 Firefox，尤其是标题/列表等源码保留块后紧跟中文组合输入。
+
+## BUG-061: 清理默认训练元数据时复用 `trainedPaths` 对象导致状态泄漏
+
+- **现象**: DeepSeek 清理提交将 `loadTrainingMeta()` 的空状态返回值简化为 `{ ...DEFAULT_TRAINING_META }`。训练文件后如果清空 `localStorage` 或遇到损坏/旧版本 meta，再次读取训练元数据仍可能带出之前训练过的路径。
+- **根因**: `DEFAULT_TRAINING_META.trainedPaths` 是引用类型。浅拷贝只复制顶层对象，`trainFile()` 会原地写入 `meta.trainedPaths[path]`，从而污染默认对象。
+- **根因类别**: 状态管理 / 类型边界
+- **修复**: 新增 `createDefaultTrainingMeta()`，所有默认返回路径都重新创建空 `trainedPaths`；补充回归测试覆盖“训练 → 清空 localStorage → 再读取应为空”的场景。
+- **教训**: 包含对象/数组的默认状态不能用浅拷贝作为可变运行态返回值；返回前必须深拷贝可变字段，或提供工厂函数。
+
+## 检查清单增补
+
+- [ ] 默认状态对象包含 `Record` / `Array` / `Map` 等可变字段时，必须通过工厂函数创建运行态副本，禁止直接浅拷贝后写入。
