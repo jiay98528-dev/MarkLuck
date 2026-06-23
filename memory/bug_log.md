@@ -623,3 +623,53 @@
 ---
 
 > 关联文档：`CLAUDE.md` §5.0（错题本必读）、§5.6（BUG 修复前置规则）、§5.9（代码审查易错点）
+
+---
+
+## BUG-056: 图片上传写入链路未真正按图片二进制闭环
+
+- **现象**: Ctrl+V 粘贴图片后 Markdown 会插入 `./assets/img_*.png`，但桌面端实际写入的是 data URL 文本；子目录笔记仍插入 `./assets/...`，从该笔记相对解析会指向错误位置；上传后文件抽屉不刷新，看不到新 `assets` 文件。
+- **根因**: `useImageUpload` 使用 `readAsDataURL()` 后直接调用文本 `fs.writeFile()`；`IFileSystemService`/Tauri IPC 缺少二进制读写契约；图片引用路径未基于当前笔记目录计算；上传完成未触发文件树刷新。
+- **根因类别**: 文件IO / 跨平台兼容
+- **修复**: 增加 `writeBinary/readBinary` 文件系统接口与 Tauri `write_binary_file/read_binary_file` 命令；上传时剥离 data URL 前缀后写 base64；按当前笔记目录生成 `./assets/...` 或 `../assets/...`；上传成功后刷新文件树。
+- **教训**: 文件名和 Markdown 引用出现不代表二进制资产闭环成立，图片上传必须同时验证写入字节、相对路径和文件树可见性。
+
+## BUG-057: Live Preview Wiki-link 存在性状态不随文件树/索引刷新
+
+- **现象**: 即时预览中 `[[不存在笔记]]` 和 `[[快速入门]]` 视觉状态相同，缺少 dead link 标识；新建/删除笔记后 Wiki-link 状态不会稳定刷新。
+- **根因**: renderer 的 Wiki-link 扩展没有接收 `wikiLinkExists` 判定函数；live preview 扩展也没有把 NotebookHome 的文件树/索引状态传入渲染管线，且刷新后没有触发编辑器插件重建。
+- **根因类别**: Wiki-link / 状态管理 / 渲染管线
+- **修复**: `renderMarkdown` 支持 `wikiLinkExists` 选项并通过 renderer 扩展写入 `wikilink--dead`；`MarkdownEditor`/`cm6-live-preview` 接收存在性回调和 revision；文件树或索引更新后递增 revision 强制重建预览。
+- **教训**: 渲染器状态不能隐式读取应用层 store，跨包扩展点必须显式传参，并在外部数据变化时有可观测的重建信号。
+
+## BUG-058: 即时预览任务 checkbox 点击不写回 Markdown 源码
+
+- **现象**: GUI 中点击 `- [ ] first task` 的可视 checkbox 后，按钮状态和复制出的 Markdown 仍是 `- [ ]`，任务未完成状态没有持久化。
+- **根因**: 任务 checkbox 位于 CM6 `Decoration.replace` widget 内，原逻辑依赖 click/change 冒泡或 widget 内回调；CodeMirror 的 pointer/mouse 处理可能先移动焦点并替换 DOM，导致后续事件拿不到稳定 widget 或被拦截。
+- **根因类别**: 渲染管线 / 状态管理
+- **修复**: 在编辑器根节点 `pointerdown` 捕获阶段拦截 `.cm-task-toggle`，在 CM6 改写 DOM 前通过 `data-block-from` 定位源码行并直接 dispatch `- [ ]`/`- [x]` 替换；widget 内事件只负责阻止焦点抢占。
+- **教训**: CM6 widget 内的交互不要依赖普通 click 冒泡完成状态写回，涉及源码变更的控件应在捕获阶段先完成文档事务。
+
+## BUG-059: TemplateDialog 自定义模板卡片嵌套 button
+
+- **现象**: Vite 在运行时提示 `<button> cannot be child of <button>`；自定义模板卡片本身是按钮，内部删除模板也是按钮。
+- **根因**: 模板选择和模板删除两个交互被放进同一个 button 层级，违反 HTML 交互内容嵌套规则，可能影响可访问性与后续事件行为。
+- **根因类别**: 渲染管线 / 可访问性
+- **修复**: 自定义模板卡片改为 `role="button"` + `tabindex="0"` 的非 button 容器，保留 Enter/Space 键盘选择；内部删除仍使用独立 `<button>`。
+- **教训**: 卡片可点击不等于必须使用 button 包裹全部内容；当卡片内部还有独立操作按钮时，应拆分语义角色，避免交互元素嵌套。
+
+## BUG-060: Firefox 下标题换行后中文 IME 提交无法恢复 live preview
+
+- **现象**: 在即时模式标题行按 Enter 后输入中文标点，Firefox 中内容实际保存为 `# 标题\n中。`，但标题行没有恢复为 `.cm-live-block[data-block-type="heading"]`，测试持续看到源码态。
+- **根因**: live preview 为避免 IME 组合输入破坏光标，组合期间跳过 decoration rebuild；但 Firefox 的 composition/transaction 状态在提交后仍可能让重建被清掉或延后不足，导致标题上方源码态没有在中文提交后恢复。
+- **根因类别**: 渲染管线 / 跨浏览器兼容
+- **修复**: 对 composition transaction 做显式判定；组合结束且当前行已有提交文本时延迟重建 decorations，空行时保留上一块源码上下文，确保中文提交后标题恢复渲染且光标仍停留在新行。
+- **教训**: IME 场景不能只按 Chromium 行为判断，至少要覆盖“标题 Enter → 中文输入 → 标点提交 → live preview 恢复”的跨浏览器闭环。
+
+## 检查清单增补
+
+- [ ] 图片上传必须验证三件事：写入内容不是 data URL 文本、Markdown 相对路径从当前笔记出发正确、文件树能看到 assets 文件。
+- [ ] 跨包 renderer 扩展需要应用状态时，必须显式传入选项并提供外部状态变化触发重建的 revision/key。
+- [ ] CM6 `Decoration.replace` widget 内的可点击状态控件，应优先在捕获阶段完成文档写回，避免 DOM 被 CM6 先替换。
+- [ ] 可点击卡片内若存在删除/更多等独立动作，不允许使用 button 嵌套 button。
+- [ ] live preview 的 IME 验证必须覆盖 Firefox，尤其是标题/列表等源码保留块后紧跟中文组合输入。
