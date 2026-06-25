@@ -241,58 +241,71 @@ M10 [██████████████████▊ ]  93%  UX 增强
 
 ## M5 — 主题与主题包
 
-**状态**：🟢 已完成 + Theme Pack v1 已落地 | **开始日期**：2026-06-03 | **最近同步**：2026-06-25
+**状态**：🟡 Theme Pack v1 基础完成，官方 workflow chrome 已补齐，安装版 GUI 待最终验收 | **开始日期**：2026-06-03 | **最近同步**：2026-06-25
 
-> 同步说明：早期 `construct/glass` 与 `ThemeSelector.vue` 记录已不符合当前代码。当前实际实现为 Paper 默认主题 + 明暗色方案 + Theme Pack v1 受控主题包。历史构成/玻璃主题不再作为发布实现依据。
+> 同步说明：早期 `construct/glass` 与 `ThemeSelector.vue` 记录已不符合当前代码。当前实际实现为 `paper`/羽翼布局默认主题 + 明暗色方案 + Theme Pack v1 基础能力；官方主题已补入 `ThemeWorkflowChrome`、统一 `ShellAction` 分发、`EditorControlStrip`、`StudioRail`、普通笔记 `read` 模式、组件级 chrome 和显式 `ThemeEffectLayer`。安装版 GUI 仍待最终核验。历史构成/玻璃主题不再作为发布实现依据。
 
 ### L3 状态
 
-| 检查层 |  状态   | 最后通过   | 详情                                                                   |
-| ------ | :-----: | ---------- | ---------------------------------------------------------------------- |
-| L1 ⚡  | ✅ PASS | 2026-06-25 | `pnpm.cmd --filter @markluck/app typecheck`                            |
-| L2 🧪  | ✅ PASS | 2026-06-25 | ThemePackInstaller + useThemeStore 新增 9 条单元测试 PASS              |
-| L3 🔗  | ✅ PASS | 2026-06-25 | `e2e/tests/18-theme-packs.spec.ts --project=chromium --workers=1` PASS |
-| L4 🔷  | ⏳ 待补 | —          | 主题切换仍需最终安装版 GUI 核验                                        |
+| 检查层 |  状态   | 最后通过   | 详情                                                                       |
+| ------ | :-----: | ---------- | -------------------------------------------------------------------------- |
+| L1 ⚡  | ✅ PASS | 2026-06-25 | typecheck、eslint、prettier、stylelint 通过                                |
+| L2 🧪  | ✅ PASS | 2026-06-25 | ThemePackInstaller + useThemeStore 主题单元测试 11/11 PASS                 |
+| L3 🔗  | ✅ PASS | 2026-06-25 | `e2e/tests/18-theme-packs.spec.ts --project=chromium --workers=1` 2/2 PASS |
+| L4 🔷  | ⚠️ 部分 | 2026-06-25 | 真实 UI WebP 预览图已重生成并抽查；安装版 GUI 仍需最终核验                 |
 
 ### 任务进度
 
-| #     | 任务               | 状态 | 产出                                                                  |
-| ----- | ------------------ | :--: | --------------------------------------------------------------------- |
-| M5-01 | Paper 默认主题     |  ✅  | `themes/paper.css` — 亮色暖纸 + 暗色卡纸                              |
-| M5-02 | Theme Pack v1 规格 |  ✅  | `spec/frontend/theme-packs.md`                                        |
-| M5-03 | 主题包类型契约     |  ✅  | `src/types/theme-pack.ts`                                             |
-| M5-04 | 主题注册表         |  ✅  | `src/services/ThemeRegistry.ts`，含 4 个官方主题                      |
-| M5-05 | 主题包安装器       |  ✅  | `src/services/ThemePackInstaller.ts`，校验 zip/manifest/CSS/checksum  |
-| M5-06 | Store v2 迁移      |  ✅  | `stores/theme.ts`：`activeThemeId`、`activeLayoutPreset`、旧 key 兼容 |
-| M5-07 | 布局 preset hooks  |  ✅  | `themes/theme-layouts.css`：winged/focus/archive/reader/studio        |
-| M5-08 | 设置页主题管理     |  ✅  | `SettingsDialog.vue` 新增“主题”一级入口                               |
-| M5-09 | 安全边界           |  ✅  | 拒绝 `@import`、远程 URL、JS、路径穿越、隐藏核心控件                  |
-| M5-10 | 自动化覆盖         |  ✅  | 新增单元测试 9 条 + Chromium E2E 1 条                                 |
+| #     | 任务                 | 状态 | 产出                                                                                                            |
+| ----- | -------------------- | :--: | --------------------------------------------------------------------------------------------------------------- |
+| M5-01 | 羽翼布局默认主题     |  ✅  | 默认 ID `paper`，设置页显示“羽翼布局”                                                                           |
+| M5-02 | Theme Pack v1 规格   |  ✅  | `spec/frontend/theme-packs.md`                                                                                  |
+| M5-03 | 主题包类型契约       |  ✅  | `src/types/theme-pack.ts`                                                                                       |
+| M5-04 | 主题注册表           |  ✅  | `src/services/ThemeRegistry.ts`，含 5 个官方主题                                                                |
+| M5-05 | 主题包安装器         |  ✅  | `src/services/ThemePackInstaller.ts`，校验 zip/manifest/CSS/checksum                                            |
+| M5-06 | Store v2 迁移        |  ✅  | `stores/theme.ts`：`activeThemeId`、`activeLayoutPreset`、旧 key 兼容                                           |
+| M5-07 | 布局 preset hooks    |  ✅  | `themes/theme-layouts.css`：winged/focus/archive/reader/studio                                                  |
+| M5-08 | 设置页主题管理       |  ✅  | `SettingsDialog.vue` 新增“主题”一级入口                                                                         |
+| M5-09 | 安全边界             |  ✅  | 拒绝 `@import`、远程 URL、JS、路径穿越、隐藏核心控件                                                            |
+| M5-10 | 自动化覆盖           |  ✅  | 新增单元测试 9 条 + Chromium E2E 1 条                                                                           |
+| M5-11 | 墨线书房内置主题     |  ✅  | `markluck.ink-study`，focus preset，偏冷纸面与墨青结构线                                                        |
+| M5-12 | 官方深度主题 profile |  ✅  | 5 个内置主题带 role、uiProfile、性能等级、预览说明                                                              |
+| M5-13 | 主题预览侧滑页       |  ✅  | 欢迎页、首页空态、设置页统一点击预览后启用                                                                      |
+| M5-14 | 扁平纹理资产         |  ✅  | 墨线书房、夜读星幕使用本地 WebP 扁平纹理，不使用写实背景                                                        |
+| M5-15 | 组件级主题 chrome    |  ✅  | `ThemeChromeState`/workflow chrome 驱动 AppShell/TopBar/LeftWing/RightWing/EditorControlStrip/StudioRail/状态栏 |
+| M5-16 | 显式特效层           |  ✅  | `ThemeEffectLayer` 真实 DOM 粒子/脉冲/呼吸光，reduced-motion 降级                                               |
+| M5-17 | 本地主题安全回退     |  ✅  | 导入主题不再获得布局 preset、官方 effect、workflow action placement 或 chrome 控制                              |
+| M5-18 | 真实 UI 预览图       |  ✅  | Playwright/Chromium 生成 5 张官方主题 WebP 预览图，展示各自工作流布局                                           |
 
 ### L4 复审摘要
 
-**日期**: 2026-06-25 | **测试者**: Codex 自动化 | 安装版 GUI 待最终验收
+**日期**: 2026-06-25 | **测试者**: Codex 自动化 + 内置浏览器 GUI | 安装版 GUI 待最终验收
 
-| #   | 测试项                   | 结果 | 说明                                            |
-| --- | ------------------------ | :--: | ----------------------------------------------- |
-| 1   | 旧 `markluck-theme` 迁移 |  ✅  | 旧 light/dark 字符串仍被读取并镜像写回          |
-| 2   | 官方主题启用             |  ✅  | html 写入 `data-theme-id` 与 layout preset      |
-| 3   | 本地主题包导入           |  ✅  | `.markluck-theme` zip 可导入并启用              |
-| 4   | 刷新持久化               |  ✅  | E2E 验证导入主题刷新后保持                      |
-| 5   | 恢复默认                 |  ✅  | 设置页按钮恢复 Paper                            |
-| 6   | 卸载当前主题             |  ✅  | 卸载本地主题自动回退 Paper                      |
-| 7   | 安全规则                 |  ✅  | 单元测试覆盖远程 URL、`@import`、路径穿越等拒绝 |
+| #   | 测试项                   | 结果 | 说明                                                                            |
+| --- | ------------------------ | :--: | ------------------------------------------------------------------------------- |
+| 1   | 旧 `markluck-theme` 迁移 |  ✅  | 旧 light/dark 字符串仍被读取并镜像写回                                          |
+| 2   | 官方主题启用             |  ✅  | html 写入 `data-theme-id` 与 layout preset                                      |
+| 3   | 侧滑预览                 |  ✅  | E2E 确认点击主题只打开预览，显式点击后才启用                                    |
+| 4   | 本地主题包导入           |  ✅  | `.markluck-theme` zip 可导入并启用                                              |
+| 5   | 刷新持久化               |  ✅  | E2E 验证导入主题刷新后保持                                                      |
+| 6   | 恢复默认                 |  ✅  | 设置页按钮恢复羽翼布局 (`paper`)                                                |
+| 7   | 卸载当前主题             |  ✅  | 卸载本地主题自动回退羽翼布局 (`paper`)                                          |
+| 8   | 安全规则                 |  ✅  | 单元测试覆盖远程 URL、`@import`、路径穿越等拒绝                                 |
+| 9   | 主题 workflow GUI        |  ✅  | Playwright 验证 5 个官方主题 action placement、默认视图、RightWing 策略和特效层 |
+| 10  | 安装版 GUI               |  ⚠️  | 最终安装包仍需离线资产与无网络请求核验                                          |
 
 ### E2E 测试覆盖
 
-| 测试           | 场景                                                                | 规则 |
-| -------------- | ------------------------------------------------------------------- | :--: |
-| 默认主题       | `<html data-theme-id="paper" data-color-scheme data-layout-preset>` |  V1  |
-| 颜色方案切换   | 顶栏按钮切换 light/dark，旧 storage key 保持字符串                  |  V3  |
-| 导入本地包     | 设置 → 主题 → 上传 `.markluck-theme` → 安装并启用                   |  V6  |
-| 刷新持久化     | 导入主题后刷新，`data-theme-id` 保持                                |  V3  |
-| 恢复默认       | 设置页恢复 Paper                                                    |  V1  |
-| 卸载当前本地包 | 卸载后自动回退 Paper                                                |  V2  |
+| 测试           | 场景                                                                    | 规则 |
+| -------------- | ----------------------------------------------------------------------- | :--: |
+| 默认主题       | `<html data-theme-id="paper" data-color-scheme data-layout-preset>`     |  V1  |
+| 颜色方案切换   | 顶栏按钮切换 light/dark，旧 storage key 保持字符串                      |  V3  |
+| 官方主题预览   | 设置/欢迎/首页主题卡片 → 侧滑预览 → 显式启用                            |  V6  |
+| 官方 workflow  | 逐个启用 5 个官方主题，验证 action 区域、默认视图、右翼策略、工具栏形态 |  V6  |
+| 导入本地包     | 设置 → 主题 → 上传 `.markluck-theme` → 安装并启用                       |  V6  |
+| 刷新持久化     | 导入主题后刷新，`data-theme-id` 保持                                    |  V3  |
+| 恢复默认       | 设置页恢复羽翼布局 (`paper`)                                            |  V1  |
+| 卸载当前本地包 | 卸载后自动回退羽翼布局 (`paper`)                                        |  V2  |
 
 ### 产出文件
 
@@ -302,9 +315,16 @@ M10 [██████████████████▊ ]  93%  UX 增强
 | `src/assets/styles/tokens.css`                      | 共享 Token + Theme Pack hooks                    |
 | `src/assets/styles/themes/paper.css`                | 默认 Paper 亮/暗主题                             |
 | `src/assets/styles/themes/theme-layouts.css`        | layout preset 与背景/纹章 hooks                  |
+| `src/assets/theme-assets/*.webp`                    | 官方收藏主题本地扁平纹理和预览图                 |
 | `src/services/ThemeRegistry.ts`                     | 官方主题、本地主题持久化、主题列表               |
 | `src/services/ThemePackInstaller.ts`                | `.markluck-theme` 校验、资产重写、安装           |
 | `src/stores/theme.ts`                               | Pinia Store：Theme Pack v2 状态 + 旧 key 兼容    |
+| `src/components/layout/ShellActionButton.vue`       | 官方 workflow chrome 统一动作按钮                |
+| `src/components/editor/EditorControlStrip.vue`      | 主题控制的编辑区工具条/写作条                    |
+| `src/components/editor/StudioRail.vue`              | 工坊轨道主题生产工具轨                           |
+| `src/components/theme/ThemeGallery.vue`             | 主题展柜卡片                                     |
+| `src/components/theme/ThemePreviewDrawer.vue`       | 主题预览侧滑页                                   |
+| `src/components/theme/ThemeEffectLayer.vue`         | 官方深度主题显式特效层                           |
 | `src/components/modals/SettingsDialog.vue`          | 主题管理入口                                     |
 | `src/services/__tests__/ThemePackInstaller.test.ts` | 主题包安全和 manifest 测试                       |
 | `src/stores/__tests__/theme.test.ts`                | Store 迁移和卸载回退测试                         |
