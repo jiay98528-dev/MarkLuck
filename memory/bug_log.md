@@ -181,7 +181,7 @@
 - **现象**: DOCX 导出为 HTML 包装的 `.doc` 文件（非真实 docx）；XLSX 导出为 CSV；PDF/HTML 导出原始 markdown 文本而非渲染 HTML。`docx` 和 `xlsx` npm 包已安装但零引用
 - **根因**: UI 全量重构时仅重做了 ExportDialog 前端对话框，`Exporter.ts` 中的 6 个导出函数从未适配真实管线
 - **根因类别**: 导出
-- **修复**: 600 行 Exporter.ts 重写。DOCX: `marked.lexer()` → `Document/Packer/Paragraph/TextRun`；XLSX: `extractTables()` → `XLSX.utils.aoa_to_sheet` → `write()`；PDF: `renderMarkdown()` → iframe → `window.print()`；HTML: 自包含 CSS + `renderMarkdown()`。接入 includeFrontmatter/includeWikiLinks/codeLineNumbers 选项
+- **修复**: 600 行 Exporter.ts 重写。DOCX: `marked.lexer()` → `Document/Packer/Paragraph/TextRun`；XLSX: `extractTables()` → `write-excel-file` → `toBlob()`；PDF: `renderMarkdown()` → iframe → `window.print()`；HTML: 自包含 CSS + `renderMarkdown()`。接入 includeFrontmatter/includeWikiLinks/codeLineNumbers 选项
 - **教训**: **UI 重构后必须审计所有后端服务适配状态。** 对话框只是冰山一角，真正的工作在服务层
 
 ## BUG-018: `onSplitContentUpdate` 缺少 `updateHeadings` 调用
@@ -626,6 +626,15 @@
 
 ---
 
+## BUG-062: 删除后书签残留（recentNotes/index/removeDocument）— 左侧孤儿书签
+
+- **现象**: GUI 删除 `GUI-mqqksjaw-综合旅程.md` 后，文件树中条目消失，但左侧书签仍残留 `.wing-bookmark-dot[aria-label="GUI-mqqksjaw-综合旅程"]`，点击后停留在无标题空态且无错误提示
+- **根因**: `IndexService.removeDocument()` 与增量索引清理链未统一更新 `allDocuments/tagIndex/wikiIncoming/wikiOutgoing/recentNotesList/searchIndex` 五维索引，`indexStore.recentNotes` 与文件树脱节；UI 侧按文件树隐藏/展示，未阻断索引层孤儿入口
+- **根因类别**: 状态管理 / 文件IO / 索引/搜索
+- **修复**: Codex M-R2-F1 收口落地统一一致性修复：`IndexService` 新增 `clearIndexesForPaths` 并在 `removeDocument` 中清理 `allDocuments/tagIndex/wikiOutgoing/wikiIncoming/recentNotesList/SearchEngine`；`synchronizeFromFileTree` 直接以文件树白名单过滤 `allDocuments/recentNotesList/tagIndex/wikiOutgoing/wikiIncoming` 已知路径，避免只从 `allDocuments` 推导 stale；`index` store 同步刷新 tags/recent/documentCount；`NotebookHome` 删除和读取异常按归一化路径清理 active note 全量状态并刷新文件树。E2E 新增 `J2b: 删除新建笔记后书签与文件树无残留`，覆盖新建-保存-删除-刷新后文件树与左侧书签均无残留。
+- **验收**: `vitest` 145/145 PASS；`16-user-journeys.spec.ts` Chromium/Firefox 155/155 全量矩阵中的 J2b 均 PASS；内置浏览器 GUI 复验 `gui-final-mqqpzx9i.md` 删除后 `treeAfterDelete=0`、`dotAfterDelete=0`、刷新后 `treeAfterReload=0`、`dotAfterReload=0`。
+- **教训**: 索引更新必须保证五维状态闭环，左侧书签仅是索引症状；任何删除必须同时清掉索引与搜索映射，避免点击到残留的孤儿入口
+
 ## BUG-056: 图片上传写入链路未真正按图片二进制闭环
 
 - **现象**: Ctrl+V 粘贴图片后 Markdown 会插入 `./assets/img_*.png`，但桌面端实际写入的是 data URL 文本；子目录笔记仍插入 `./assets/...`，从该笔记相对解析会指向错误位置；上传后文件抽屉不刷新，看不到新 `assets` 文件。
@@ -685,3 +694,233 @@
 ## 检查清单增补
 
 - [ ] 默认状态对象包含 `Record` / `Array` / `Map` 等可变字段时，必须通过工厂函数创建运行态副本，禁止直接浅拷贝后写入。
+
+## BUG-063: M-R3 小屏浮层与导出开关可访问性未形成发布级闭环
+
+- **现象**: M-R3 响应式审计发现通用 modal/命令面板依赖固定宽度（480/520/560px），在 360px 视口下需要显式 `max-width` 和移动端高度约束才能证明不会横向溢出；导出对话框的三个选项开关仅支持鼠标点击，缺少 `role="switch"`、`aria-checked`、焦点环和 Space/Enter 键盘切换。
+- **根因**: 早期 E2E 只覆盖桌面 happy path 与可见性，未用 360/768/1280/1440 多视口验证核心浮层；`SettingsDialog` 已补齐 switch 语义，但 `ExportDialog` 的同类 toggle 没有同步治理。
+- **根因类别**: 渲染管线 / 可访问性 / 跨平台兼容
+- **修复**: `dialog.css` 为通用 `.modal-card` 增加视口约束和 480px 以下移动端规则；`CommandPalette.vue` 为命令面板增加小屏 `max-width/max-height` 与 footer 换行；`ExportDialog.vue` 为三个导出选项补齐 switch 语义、键盘切换和 focus ring；新增 `17-responsive-a11y-visual.spec.ts` 覆盖 360x740、768x1024、1280x800、1440x900 下 app shell、设置、搜索、模板、导出、文件抽屉、暗色主题与 switch 键盘行为。
+- **验收**: 新增 M-R3 规格 Chromium/Firefox 均 PASS；Chromium 全量 E2E 161/161 PASS；Firefox 全量 E2E 161/161 PASS；`typecheck`、ESLint、stylelint、Prettier 触达文件、Vitest 145/145、build 均通过。
+- **教训**: 发布前 UI 验收不能只看桌面宽屏可见性；任何自绘 toggle 必须按同一语义标准补齐 role/state/keyboard/focus，且核心浮层必须在 360px 视口下有自动化断言。
+
+## 检查清单增补
+
+- [ ] 新增或修改浮层时，必须覆盖 360px、768px、1280px、1440px 视口下无横向溢出和 Escape 退出。
+- [ ] 自绘 toggle/switch 控件必须具备 `role="switch"`、`aria-checked`、键盘切换和可见 focus ring。
+
+## BUG-064: Tauri 真实文件系统无法处理前端 `/note.md` 路径
+
+- **现象**: M-R4 审计发现前端统一使用 `/note.md`、`/folder/a.md` 作为笔记本内路径；Rust `resolve_safe_path()` 直接把该字符串交给 `Path::new()`，在 Tauri 真实 FS 下会被解释为 OS 绝对路径，导致列目录、读取、写入、重命名等命令无法稳定落在 notebook root 内。
+- **根因**: Web MockFS 的路径契约是“以 `/` 表示笔记本根”，Rust 层未做相同归一化；`root.join(Path::new("/x.md"))` 不等价于 `root/x.md`，而是尝试逃出 root。既有 Rust 测试只验证相对路径，未覆盖前端真实传入的 notebook-root marker。
+- **根因类别**: 文件IO / 跨平台兼容 / 类型边界
+- **修复**: `resolve_safe_path()` 将前导 `/` 视为 notebook-root marker 并剥离，再做绝对路径和 `..` 逃逸检查；新增 Rust 单元测试覆盖 `/notes/test.md`、`/`、真实绝对路径拒绝。`fs_ops.rs` 增加可测试内部函数，并在真实临时目录中验证文本写读、二进制写读、重命名、列目录和路径逃逸拒绝。
+- **验收**: `cargo fmt --check` PASS；`cargo test` 6/6 PASS；`pnpm.cmd --filter @markluck/app tauri:build:debug` PASS。
+- **教训**: Web/MockFS 的路径语义必须在 Tauri/Rust 边界显式归一化；任何跨端文件接口测试都必须使用真实前端会传入的路径形态，而不是只测 Rust 自然相对路径。
+
+## BUG-065: Tauri v2 旧式 `plugins.fs.scope` 配置导致桌面端启动即 panic
+
+- **现象**: `pnpm.cmd --filter @markluck/app tauri:dev` 启动到 `target\debug\markluck.exe` 后直接 panic：`PluginInitialization("fs", "Error deserializing 'plugins.fs' ... unknown field scope, expected requireLiteralLeadingDot")`。
+- **根因**: `tauri.conf.json` 仍保留旧版 `plugins.fs.scope.allow/deny` 配置；当前 `@tauri-apps/plugin-fs` v2.5.x 已不接受该字段。权限已经在 `capabilities/default.json` 中配置，旧 scope 块既无必要又会阻断运行时初始化。
+- **根因类别**: 跨平台兼容 / 类型边界
+- **修复**: 删除 `tauri.conf.json` 中过时的 `plugins.fs.scope` 块，保留 shell 插件配置；Tauri 文件访问继续由 capabilities 和自定义 IPC 控制。
+- **验收**: 修复前 `tauri:dev` 复现 panic；修复后 `tauri:dev` 启动到 `[app_lib][INFO] MarkLuck Tauri backend initialized`；最终 `tauri:build:debug` PASS 并生成 `MarkLuck_0.1.0_x64-setup.exe`。
+- **教训**: Tauri 插件升级后，能 build 不代表运行时配置有效；桌面端发布闸门必须包含 `tauri:dev` 实际启动，不能只跑 bundle build。
+
+## 检查清单增补
+
+- [ ] Tauri/Rust 文件命令必须覆盖前端 notebook-root 路径形态：`/`、`/note.md`、`/dir/note.md`。
+- [ ] Tauri 插件配置变更后必须同时跑 `tauri:dev` 和 `tauri:build:debug`，防止 build 通过但运行时插件初始化失败。
+
+## BUG-066: 启动后台版本检查未尊重自动检查开关
+
+- **现象**: M-R5 网络隐私审计发现，应用初始化 15 秒后会无条件调用 GitHub release API；即使用户未开启或已关闭 `markluck:version:autoCheck`，仍可能产生启动联网。
+- **根因**: `useVersionCheck` 内部的 `checkForUpdates()` 会读取自动检查设置，但 `NotebookHome.vue` 挂载后的后台定时器直接调用 `checkNow()`，绕过了设置门控。
+- **根因类别**: 跨平台兼容 / 状态管理 / 安全隐私
+- **修复**: 在 `NotebookHome.vue` 增加 `VERSION_AUTO_CHECK_KEY` 与 `shouldRunBackgroundVersionCheck()`，后台延迟检查前先读取本地开关；新增 E2E 拦截 `https://api.github.com/**`，验证自动检查关闭时启动 16 秒内请求数为 0。
+- **教训**: 所有后台网络行为必须在调用点和服务点都受用户设置门控；测试要用路由拦截证明“没有请求”，不能只验证 UI 设置存在。
+
+## BUG-067: XLSX 导出依赖 `xlsx` 存在高危漏洞且 npm 无可用修复版
+
+- **现象**: `pnpm audit --audit-level high` 报告 `xlsx@0.18.5` 存在 Prototype Pollution 与 ReDoS 高危漏洞；npm registry 最新仍为 0.18.5，审计建议的 0.19.3/0.20.2 不可直接通过 npm 升级获得。
+- **根因**: ADR-009 锁定 SheetJS `xlsx` 作为运行时导出依赖，但发布安全闸门未验证“存在可安装的 patched release”。
+- **根因类别**: 导出 / 安全隐私 / 依赖管理
+- **修复**: 移除根目录和 app 的 `xlsx` 依赖，改用 `write-excel-file@4.1.1` 生成 XLSX Blob；保留 Markdown 表格提取与多 sheet 导出行为；新增 E2E 验证 XLSX 下载文件大小与 ZIP 包头 `PK`；同步 ADR/PRD/TAD/progress 中的导出依赖描述。
+- **教训**: 对无可用修复版本的高危运行时依赖，发布收口阶段应优先替换而不是压低审计等级；导出格式替换必须有下载文件层面的可观测断言。
+
+## 检查清单增补
+
+- [ ] 后台网络请求必须同时验证“开启时可用”和“关闭时不发请求”，关闭态应通过网络拦截计数证明。
+- [ ] 发布依赖审计中若 patched version 不可从当前 registry 安装，必须替换依赖或记录明确发布阻断，不能仅升级到 latest。
+- [ ] 导出库替换后，E2E 必须读取下载文件并验证格式特征或内容相关性。
+
+## BUG-068: Windows Playwright webServer 使用 `pnpm` 导致最终 E2E 启动不稳定
+
+- **现象**: M-R7 最终 E2E 在 Windows 环境下由 Playwright `webServer` 拉起 dev server 时可能超时，手动命令可运行但测试入口不稳定。
+- **根因**: `packages/app/playwright.config.ts` 使用 `pnpm --filter @markluck/app dev`，Windows 下非 shell 场景对 shim 解析不如 `pnpm.cmd` 稳定；30s 超时对 Vite 冷启动和依赖扫描偏紧。
+- **根因类别**: 跨平台兼容 / 测试基础设施
+- **修复**: webServer 命令改为 `pnpm.cmd --filter @markluck/app dev`，timeout 提升到 60s。
+- **教训**: 发布级 E2E 配置必须使用目标平台稳定可执行入口；Windows 下优先显式 `.cmd`，避免 shell shim 假设。
+
+## BUG-069: NotebookHome 主 chunk 过大且 Tauri event 静态/动态导入混用
+
+- **现象**: M-R7 前生产构建存在 `NotebookHome` chunk 超过 500kB 的 Vite warning，并提示 `@tauri-apps/api/event.js` 同时被静态和动态导入。
+- **根因**: `NotebookHome.vue` 静态引入多个重型对话框和导出路径，导出库被卷入页面主 chunk；同一 Tauri event 模块在页面中动态导入，在 Tauri IPC 层静态导入。
+- **根因类别**: 性能体积 / 构建管线
+- **修复**: 页面弹层改为 `defineAsyncComponent`；Tauri event `listen` 改为静态导入；Vite manualChunks 拆分 CodeMirror、导出库、Markdown、Vue/Pinia、Tauri API。
+- **教训**: 发布前不能把构建 warning 全部当作噪声；当 warning 指向真实首屏体积或重复导入路径时，应在最终 RC 前收口。
+
+## BUG-070: Playwright HTML report 作为跟踪文件污染发布候选补丁
+
+- **现象**: M-R7 运行 E2E 后 `e2e/report/index.html` 反复出现在工作区 diff 中，并让广义 `prettier --check e2e` 扫到生成物。
+- **根因**: Playwright HTML report 曾被纳入 git 跟踪，且 `.gitignore` 未覆盖 `e2e/report/`。
+- **根因类别**: 测试基础设施 / 发布卫生
+- **修复**: 删除 tracked `e2e/report/index.html`，并在 `.gitignore` 增加 `e2e/report/`。
+- **教训**: 发布补丁必须把测试证据和测试生成物分开；HTML report、截图、视频、trace、`test-results/` 不应作为源码合入。
+
+## 检查清单增补
+
+- [ ] Windows 发布级 Playwright 配置应使用 `pnpm.cmd`，并给 dev server 冷启动留出足够 timeout。
+- [ ] 生产构建 warning 若涉及首屏 chunk 或同模块静态/动态导入混用，必须在 RC 前解释、修复或记录为明确非阻断项。
+- [ ] E2E/测试报告生成目录必须在 `.gitignore` 中，已跟踪生成物必须从源码补丁中移除。
+
+## BUG-071: 桌面安装版双击 Markdown 文件后打开空白编辑页
+
+- **现象**: 在 Windows 桌面双击 `.md` 文件会启动 MarkLuck，但应用只显示无标题空白编辑页，目标文件内容没有被读取，文件抽屉也可能停留在“未打开笔记本”。
+- **根因**: Tauri 启动参数只以裸绝对路径字符串保存并发送给前端；前端把它当作笔记本内部路径使用，没有先打开目标文件的父目录作为 notebook root。启动期事件还可能早于前端 listener 注册，导致待打开文件丢失；已有运行实例也没有单实例路由接收后续双击文件。
+- **根因类别**: 文件IO / 跨平台兼容 / 状态管理
+- **修复**: Tauri 将启动参数结构化为 `{ absolutePath, notebookRoot, relativePath }`；前端启动时先消费 `get_opened_file`，再监听 `opened-file` 事件；收到文件后先 `openNotebookAt(notebookRoot)`、重建索引，再选中并读取 `relativePath`。补入 `tauri-plugin-single-instance`，让已运行实例也能接收后续文件打开事件。
+- **验收**: `cargo test` 覆盖 Markdown 参数解析和非 Markdown 忽略；Chromium/Firefox 自动化通过；安装版 GUI 风险复核已验证真实 `.mdx` 启动会打开父目录并显示目标文件内容。
+- **教训**: 桌面文件关联不能只传一个字符串。跨进程/跨平台入口必须把“系统绝对路径”和“应用内部相对路径”拆开，并提供启动前缓存 + 运行时事件两条消费路径。
+
+## BUG-072: 桌面首次启动示例笔记本与默认文档缺失
+
+- **现象**: 安装版启动后顶部仍显示示例笔记本语义，但文件抽屉显示“未打开笔记本”；预设的新手引导和格式示例文档不可见。
+- **根因**: Web MockFS 有内存种子数据，但 Tauri 桌面端正常启动时没有真实 notebook root，也没有在用户本地目录创建示例笔记本。MockFS 历史种子还存在乱码和版本缓存，导致 Web/E2E 与安装版真实体验分叉。
+- **根因类别**: 文件IO / 状态管理 / 跨平台兼容
+- **修复**: 新增 Rust `open_sample_notebook`，在 `%LOCALAPPDATA%/MarkLuck/示例笔记本` 下按缺失写入 `快速入门.md`、`格式示例.md`、`项目规划.md`；前端桌面启动时无最近笔记本则打开示例笔记本。MockFS 种子重写为 UTF-8，提升 storage version，确保 Web 测试和桌面默认体验一致。
+- **验收**: MockFS 单测覆盖默认文档；E2E Wiki-link、文件抽屉和用户旅程在 Chromium/Firefox 全量通过。
+- **教训**: “默认文档”不能只存在于 Web mock。任何首次体验核心内容都必须在真实桌面文件系统中有等价种子路径，并且 root 状态只能有一个来源。
+
+## BUG-073: 中文 IME 输入期间 Live Preview 异步重建导致格式渲染和行号错位
+
+- **现象**: 中文输入法下输入 `# 标题` 和多行正文时，Live Preview/Split Preview 可能出现源码 placeholder 残留、标题渲染错位、行号/块映射不稳定。
+- **根因**: `cm6-live-preview` 在 composition 期间虽然有主流程 guard，但异步 `setTimeout`/rAF 入口仍可能在 IME 最后一笔提交前重建 `Decoration.replace`，导致装饰状态基于旧 selection/doc 被写回。
+- **根因类别**: 渲染管线 / 跨平台兼容
+- **修复**: composition 期间只映射已有 decorations，不重建替换装饰；composition end 后等待一个 macrotask + 一帧，再基于最新 `view.state.doc` 和 selection 重建，并统一检查 `isComposing`、`view.composing`、`view.compositionStarted`。
+- **验收**: `14-live-preview-journey.spec.ts` Chromium 12/12 PASS；Firefox 全量中 IME 专项和 Live Preview 全部 PASS。
+- **教训**: IME 防护必须覆盖所有异步入口，不能只看 ViewPlugin `update()` 主路径；composition end 后也要给浏览器一次提交落盘窗口。
+
+## BUG-074: Tab 在补全和控件焦点导航之间产生竞态
+
+- **现象**: 用户按 Tab 时，编辑器幽灵文本补全和按钮/弹窗/设置项焦点导航互相抢占；有时控件导航被应用补全吞掉，有时可见 ghost text 因焦点丢失无法接受。
+- **根因**: ghost text 的 Tab handler 只检查是否存在 `currentGhostText`，没有验证当前焦点是否仍在 CodeMirror 编辑区、selection 是否绑定当前光标、是否处于 IME composition。失焦后旧 ghost text 也没有及时清理。
+- **根因类别**: 渲染管线 / 可访问性 / 状态管理
+- **修复**: 新增 `canAcceptGhost(view)`，只有编辑区持焦、光标为空选区、有可见 ghost text、且非 IME 时才消费 Tab；blur 清空 ghost 和 pending timers，focus 重新预测；DOM-level Tab handler 再确认事件目标在编辑区内。
+- **验收**: 新增 E2E 覆盖“设置弹窗中 Tab 保留原生焦点导航，回到编辑器后 Tab 接受 ghost text”；Chromium/Firefox 自动补全专项和全量 E2E PASS。
+- **教训**: 键盘可访问性和编辑器快捷键必须按焦点域分层，不能用全局状态抢 Tab。
+
+## BUG-075: 欢迎页默认 Markdown 应用设置制造 no-op 成功假象
+
+- **现象**: 欢迎页选择“默认开启 Markdown 格式”后没有实际设置系统默认应用，用户仍需在 Windows 系统设置中手动选择 MarkLuck。
+- **根因**: Windows 不允许普通应用静默强制成为 `.md` 默认应用；原逻辑把“用户点击过按钮”持久化成近似成功态，产品文案误导用户。
+- **根因类别**: 跨平台兼容 / 状态管理
+- **修复**: 文案改为说明“安装器已注册 MarkLuck 为可选打开程序，系统默认应用需用户手动选择”；按钮改为打开 `ms-settings:defaultapps`，失败时展示手动路径说明；只持久化“已查看/已尝试设置”，不持久化“已成功设为默认”。
+- **验收**: 欢迎页 E2E 继续 PASS；安装版 GUI 风险复核已确认文案不会误导用户“已自动设为默认”，并提供系统设置/人工路径。
+- **教训**: 操作系统级能力不可达时，产品必须给出真实状态和下一步路径，禁止用本地 flag 伪装成功。
+
+## BUG-076: Windows 桌面图标有效内容面积过小
+
+- **现象**: 安装后桌面快捷方式图标在 Windows 桌面上明显偏小，和常见应用图标比例不一致。
+- **根因**: 早期抠图/导出保留了过大的透明边距，512 图标 alpha bbox 约 374x376，真实图形只占画布约 73%。
+- **根因类别**: 跨平台兼容 / 发布资产
+- **修复**: 基于用户回传的干净图标重新裁切并放大 Windows icon master，重新生成 Tauri app icons 和文件关联 icon；最终 `icon.png` 的 512 alpha bbox 达到 475x477，超过 455px 目标。
+- **验收**: 静态 bbox 检查通过；新图标已应用到 Tauri app icon、file icon 和安装包资源，安装版风险复核未再发现桌面图标尺寸阻断。
+- **教训**: 图标验收不能只看源图，应检查目标平台最终 `.ico`/PNG 多尺寸中的 alpha bbox，有效内容面积需要量化阈值。
+
+## 检查清单增补
+
+- [ ] 桌面文件关联必须同时验证冷启动和已运行实例两种入口，且启动参数应包含绝对路径、notebook root 与应用内部相对路径。
+- [ ] 首次体验默认内容必须在 Web MockFS 和 Tauri 真实 FS 中同时存在，不能只依赖 mock 种子。
+- [ ] IME 修复必须覆盖 Chromium 与 Firefox，并验证 Live Preview 标题、空行、普通中文正文三类块映射。
+- [ ] Tab 快捷键只能在编辑器持焦且存在当前光标 ghost text 时消费；弹窗、工具栏、设置页必须保留原生焦点导航。
+- [ ] 系统级设置按钮不得持久化虚假的成功态；不可自动完成时必须打开系统设置或展示人工路径。
+- [ ] 发布图标必须检查最终多尺寸资产的 alpha bbox，Windows 512 图标有效宽高不应小于 455px。
+
+## BUG-077: 文件管理器与系统文件关联的支持格式白名单分裂
+
+- **现象**: 安装版 GUI 复测时发现软件没有形成系统层级和软件内一致的“支持格式”管理。文件抽屉可能展示图片、PDF、备份文件等不可编辑项；`.mdx` 在前端抽屉被当作 Markdown，但 Windows 注册、启动参数、搜索索引和后台监听并未完整支持。
+- **根因**: 支持格式被散落在多处硬编码：`fs_ops.rs` 的真实 FS 列表允许图片和 `.txt`，`FileDrawer.vue` 对所有非目录都可触发打开，`IndexService.ts` 只索引 `.md`，`lib.rs`/`tauri.conf.json`/`hooks.nsh` 只处理 `.md/.markdown`，`file_watcher.rs` 与后台训练也有独立白名单。
+- **根因类别**: 文件IO / 跨平台兼容 / 状态管理
+- **修复**: 新增 `note-files.ts` 统一前端可编辑笔记格式：`.md/.markdown/.mdx/.txt`；文件抽屉只展示目录和支持格式并保留重命名原扩展名；主页选择、新建、重命名、Wiki-link、索引同步全部接入同一规则；MockFS 与 Tauri FS 列表保持一致；Tauri 外部启动参数最终收敛为只接受 `.md/.markdown/.mdx`，`.txt` 仅作为应用内可打开格式；NSIS/Windows 只注册 Markdown 家族 `.md/.markdown/.mdx`，不抢占 `.txt`；Tantivy、文件监听、后台训练同步 `.mdx`。
+- **验证**: `typecheck` PASS；`eslint` PASS；`stylelint` PASS；`prettier --check` PASS（仅支持解析的文件）；`vitest` 156/156 PASS；`cargo fmt --check` PASS；`cargo check` PASS；`cargo test` 11/11 PASS；`build` PASS；Chromium 全量 E2E 167/167 PASS（最终表格微调后 J1c 定向复跑 PASS）；Firefox `16-user-journeys` 10/10 PASS；安装版 GUI 风险复核已验证外部 Markdown 单文件只读/编辑、`.txt` 应用内打开、文件抽屉过滤和系统关联边界。
+- **教训**: 支持格式是跨层契约，不能散落在 UI、索引、真实 FS、MockFS、启动参数和安装器脚本中。每新增或调整扩展名，必须同时检查“展示、打开、索引、监听、训练、系统注册”六个入口。
+
+## 检查清单增补
+
+- [ ] 文件格式白名单变更必须同步检查：FileDrawer 展示、NotebookHome 打开/新建/重命名、IndexService、MockFS、Tauri FS、启动参数、文件监听、训练服务、NSIS/系统注册。
+- [ ] 文件抽屉不得展示不可作为笔记打开的普通资产文件；`assets/` 仍用于图片存储，但默认不作为用户笔记入口暴露。
+
+## BUG-078: 外部 Markdown 文件启动误把父目录当笔记本并触发全局扫描
+
+- **现象**: 在真实 Windows 环境中双击桌面或下载目录中的 `.md` 文件会先进入空白/等待态，随后把父目录当作笔记本递归加载，导致 Desktop/Downloads/用户目录中的大量文本文件、标签和最近笔记污染，严重时卡死。
+- **根因**: 早期桌面文件关联修复把外部启动参数转换为 `{ absolutePath, notebookRoot, relativePath }` 后直接调用 `openNotebookAt(parent)`，混淆了“打开一个外部文件”和“用户显式打开一个笔记本文件夹”两种产品语义。前端启动流程随后继续执行文件树加载、索引初始化、标签/搜索/后台训练和最近笔记本写入。
+- **根因类别**: 文件IO / 状态管理 / 索引/搜索 / 跨平台兼容
+- **修复**: 外部 `.md/.markdown/.mdx` 启动改为 `external-readonly` 单文件会话；默认全屏只读渲染，不显示欢迎页、左翼、右翼、文件抽屉、标签和搜索；点击“启用编辑”确认后进入 `external-edit`，只通过绝对路径读写当前文件，不扫描父目录，不写最近笔记本，不启动索引或后台训练。`.txt` 仅作为应用内文件格式，不作为系统级外部启动格式。
+- **验证**: E2E 覆盖 mock opened-file 后不显示 WelcomePage/LeftWing/RightWing/FileDrawer；安装版 GUI 通过 Windows 文件关联启动真实桌面 `.md`，确认进入只读页、启用编辑后保存同一文件、磁盘回读成功，且没有父目录扫描。
+- **教训**: 系统文件关联入口必须先判定“单文件会话”还是“笔记本会话”。普通文件双击不应隐式升级为打开所在目录，更不能启动全库索引、标签和训练。
+
+## BUG-079: 即时模式 Markdown 表格列宽和对齐渲染塌陷
+
+- **现象**: Live Preview/即时模式中普通 Markdown 表格被渲染成错位文本，中文表头如“维度 评分 说明”会粘在一起，数字列如 `85` 会贴到下一列正文前，阅读体验接近不可用。
+- **根因**: 旧实现按单行伪造表格块，依赖 `display: table-row`/单元格替换，无法在 CodeMirror 不跨行替换的约束下共享列宽；后续 CSS `data-table-column-count` fallback 又覆盖了解析器计算出的 `--ml-table-template`。同时内联 `text-align` 容易被清洗/覆盖，表头继承右对齐后进一步造成中文标题粘连。
+- **根因类别**: 渲染管线 / 前端样式 / IME 交互边界
+- **修复**: 表格解析按组计算列数、列宽模板、分隔行和对齐；每行用 CSS Grid 渲染同一组列模板，分隔行隐藏，单元格使用 `ml-table-cell--align-*` 类控制对齐；表头强制左对齐并增加列间 padding。只读外部文件模式走完整 Markdown renderer，输出真实 `<table>`。
+- **验证**: `cm6-live-preview` 单元测试覆盖中文表头、对齐和无 `.ml-td`；J1c E2E 定向通过；安装版 GUI 在单文件编辑模式中验证中文表格视觉不再串列。
+- **教训**: CodeMirror 内的“富文本式表格”不能按行独立决定列宽。只要视觉上是一个表格，就必须有表格组级别的列模型。
+
+## BUG-080: 冷启动期间全局快捷键监听注册过晚导致 Ctrl+K/Ctrl+Shift+P 失效
+
+- **现象**: 应用冷启动或外部文件打开期间，用户按 `Ctrl+K`/`Ctrl+Shift+P` 可能没有打开搜索/命令面板，表现为快捷键被吞掉或等待初始化完成后才可用。
+- **根因**: `NotebookHome` 在 `onMounted()` 内先 `await initNotebook()`，再注册全局 keydown listener。真实文件系统初始化、外部文件读取或目录扫描较慢时，用户早期输入发生在 listener 存在之前；同时按键匹配大小写不完全稳健。
+- **根因类别**: 状态管理 / 交互竞态
+- **修复**: 全局快捷键 listener 提前到挂载开始处注册，使用 capture 阶段和小写 key 匹配；外部单文件会话在初始化早期 return，避免不必要的 notebook 初始化阻塞。
+- **验证**: 搜索专项 E2E 通过；Chromium 全量 E2E 167/167 通过；安装版 GUI 外部文件只读/编辑路径未再出现快捷键初始化阻塞。
+- **教训**: 用户可见的全局快捷键不能排在异步初始化之后。初始化越慢，越要先挂交互入口，再按当前状态决定是否响应。
+
+## 检查清单追加
+
+- [ ] 桌面文件关联入口必须区分单文件会话和笔记本会话；除非用户显式选择文件夹，否则不得扫描父目录。
+- [ ] 外部单文件会话不得调用索引、标签、搜索、后台训练、最近笔记本写入或文件抽屉递归加载。
+- [ ] `.txt` 只能作为应用内可打开格式，不得被系统文件关联或命令行外部启动入口接受。
+- [ ] Live Preview 表格必须用表格组级列模型验证，不能只断言单行 HTML 可见。
+- [ ] 冷启动前 1 秒内的全局快捷键也必须可响应或明确按当前页面状态忽略，listener 不得注册在长异步初始化之后。
+
+## BUG-081: 外部只读切编辑后完整控件未恢复且文件抽屉可能停留在视口外
+
+- **现象**: 外部 Markdown 进入只读页后，点击“启用编辑”只能进入临时单文件编辑面板，TopBar、格式工具栏、状态栏、导出/分享/设置等完整控件没有按 AppShell 形态恢复；随后打开文件抽屉时，抽屉语义上存在但可能因横向 transform 处于视口外，用户无法点击同目录文件。
+- **根因**: 外部文件会话只有 `external-readonly/external-edit` 的临时壳，未把“完整 AppShell 外观”和“单文件数据域”拆开；文件抽屉依赖滑入 transform 动画，发布收口中新的外部编辑切换路径暴露出抽屉可能保留 offscreen transform 的不稳定状态。
+- **根因类别**: 状态管理 / 前端样式 / 可访问性
+- **修复**: 外部会话扩展为 `external-readonly`、`external-edit-shell`、`external-folder-indexed`；只读页改为正式 reader layout；启用编辑后恢复 AppShell、TopBar、FormatToolbar、StatusBar、导出、分享、设置和主题切换，但默认只读写当前外部文件；文件抽屉按需列出父目录支持格式，未点击文件不进入左侧彩色圆点；抽屉横向 transform 动画移除，保留遮罩淡入，避免 offscreen 卡住。
+- **验证**: `typecheck` PASS；`prettier --check` PASS；`vitest` 156/156 PASS；`cargo fmt --check` PASS；`cargo check` PASS；`cargo test` 11/11 PASS；Chromium `16-user-journeys` 10/10 PASS；Firefox `16-user-journeys` 10/10 PASS；内置浏览器 GUI 抽样确认文件抽屉 `x=0`、宽 `320px`、`transform: none`，设置页“扫描根目录文本文件”开关可见。
+- **教训**: 外部文件编辑可以恢复完整软件控件，但数据域仍必须保持单文件边界。动画不能成为交互可达性的前提，发布阶段对抽屉/弹层这类基础导航控件要优先保证稳定可点击。
+
+## 检查清单追加
+
+- [ ] 外部文件“编辑态完整控件恢复”不等于打开父目录笔记本；AppShell 外观和数据域必须分离验证。
+- [ ] 单文件会话左侧彩色圆点只显示当前文件和用户本会话实际打开过的文件，不能加入扫描得到但未点击的文件。
+- [ ] 抽屉、弹层、确认框的入场动画不得让可交互元素长期停留在视口外；E2E 需要验证实际点击，不只验证 DOM 可见。
+
+## BUG-082: 卸载后 `.md` 文件图标仍残留 MarkLuck 图标
+
+- **现象**: 本机卸载 MarkLuck 后，`.md` 文件的关联图标仍然显示为 MarkLuck 文件图标；注册表中 `.md/.markdown/.mdx` 扩展名仍可能指向旧 `Markdown` ProgID，且 Explorer `OpenWithList/OpenWithProgids` 中可能残留 `markluck.exe` 或 `Markdown`。
+- **根因**: Windows NSIS 安装器生成的文件关联使用通用 `Markdown` 作为 ProgID；自定义 hook 又把 `Software\Classes\Markdown\DefaultIcon` 改为 `$INSTDIR\file-icon.ico`。卸载时 Tauri 的 `APP_UNASSOCIATE` 只按安装时备份恢复扩展名默认值并删除 ProgID，未覆盖旧版本 hook 写入的通用 `Markdown` 图标/打开命令和 Explorer 用户级残留。
+- **根因类别**: 跨平台兼容 / 发布资产 / 文件IO
+- **修复**: 本机先执行静默卸载并清理用户级注册表残留；安装器配置把文件关联 ProgID 改为 `MarkLuck.Markdown`，避免继续污染通用 `Markdown` 类；`installer-assets/hooks.nsh` 增加 `NSIS_HOOK_POSTUNINSTALL`，卸载时清理 `MarkLuck.Markdown`、扩展名备份值、Explorer `OpenWithProgids/OpenWithList`，并在确认旧 `Markdown` 类由 MarkLuck 安装目录拥有时兼容删除旧残留。
+- **验证**: 本机卸载后 `D:\MarkLuck` 不存在，卸载项为 0，`HKCU:\Software\Classes\Markdown` 与 `HKCU:\Software\Classes\Applications\markluck.exe` 不存在；新 v0.15 安装器静默安装后 `.md` 指向 `MarkLuck.Markdown`。模拟旧包留下的 `Markdown` 默认关联、DefaultIcon、open command 与 `OpenWithList` 后，再用新 v0.15 静默安装/卸载，`MarkLuck.Markdown`、旧 `Markdown`、卸载项、安装目录均不存在，`.md/.markdown/.mdx` 默认值清空。
+- **教训**: Windows 文件关联必须使用应用专属 ProgID，卸载 hook 要清理安装器自定义写入的所有注册表路径；验证不能只看安装目录是否删除，还必须查扩展名默认值、ProgID、OpenWithList/OpenWithProgids 和 shell 图标缓存。
+
+## 检查清单追加
+
+- [ ] Windows 文件关联不得使用通用 `Markdown` ProgID；应使用应用专属 ProgID，并确保卸载时撤销扩展名默认值、ProgID、OpenWithProgids 和应用打开列表残留。
+- [ ] 发布安装包验收必须包含“安装 → 查看 `.md` 图标/打开方式 → 卸载 → 重新查看图标/打开方式”的闭环，不能只验证安装成功。
