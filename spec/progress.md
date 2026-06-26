@@ -241,9 +241,15 @@ M10 [██████████████████▊ ]  93%  UX 增强
 
 ## M5 — 主题与主题包
 
-**状态**：🟡 Theme Pack v1 基础完成，官方 workflow chrome 已补齐，安装版 GUI 待最终验收 | **开始日期**：2026-06-03 | **最近同步**：2026-06-25
+**状态**：🟢 已完成 — 主题系统 v2 重构 | **开始日期**：2026-06-03 | **完成日期**：2026-06-26
 
-> 同步说明：早期 `construct/glass` 与 `ThemeSelector.vue` 记录已不符合当前代码。当前实际实现为 `paper`/羽翼布局默认主题 + 明暗色方案 + Theme Pack v1 基础能力；官方主题已补入 `ThemeWorkflowChrome`、统一 `ShellAction` 分发、`EditorControlStrip`、`StudioRail`、普通笔记 `read` 模式、组件级 chrome 和显式 `ThemeEffectLayer`。安装版 GUI 仍待最终核验。历史构成/玻璃主题不再作为发布实现依据。
+> 2026-06-26 更新：原 Theme Pack v1（Codex 初版）已被 v2 重构替换。重构分 4 个里程碑：
+>
+> - M1: 声明式主题模块 — 5 个官方主题提取到独立模块目录，`OfficialThemeModule`/`ShellRecipe` 成为唯一真源
+> - M2: Shell Recipe 驱动 — AppShell + 子组件 Props 统一为 Region 对象
+> - M3: 布局深层差异化 — CSS/动效/动作路由/背景资产全面审计通过
+> - M4: 文档 + L3.5 审计（当前）
+>   架构：`packages/app/src/themes/paper|ink-study|archive|reader-nocturne|studio/` → `ThemeRegistry.buildAllBuiltInPacks()` → `useThemeStore.chromeStateFromPack()` → `AppShell region objects`
 
 ### L3 状态
 
