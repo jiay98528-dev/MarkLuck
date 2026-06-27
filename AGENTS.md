@@ -540,7 +540,7 @@ expect(content2).toContain('Hello World');
 | --- | --------------------- | ---------------------------------------------------------------- |
 | 1   | `app-shell-initial`   | 三区布局、纸张暖色背景、书签圆点、TopBar、无横向溢出             |
 | 2   | `editor-with-content` | CM6 编辑器、分栏预览、标题层级、代码高亮、状态栏、Wiki-link 样式 |
-| 3   | `dark-theme`          | 暗色 Token 全量切换、三区一致性、暗色代码高亮、对比度达标        |
+| 3   | `paper-shell`         | 羽翼布局三栏一致性、代码高亮、对比度达标                         |
 | 4   | `template-dialog`     | 模态框居中+遮罩、模板卡片排列、羽翼阴影、纸张表面 Token          |
 | 5   | `search-palette`      | 命令面板居中、输入框自动聚焦、placeholder 可见、面板浮起阴影     |
 | 6   | `export-dialog`       | 格式卡片布局、Toggle 开关可见、选中状态反馈、按钮可点击          |
@@ -799,9 +799,9 @@ AI 编码时，额外注意以下 MarkLuck 特定的易错点：
 | 文件                                               | 内容                                                           |
 | -------------------------------------------------- | -------------------------------------------------------------- |
 | `packages/app/src/assets/styles/tokens.css`        | 共享 Token：字体/间距/Z-Index/三层动效体系                     |
-| `packages/app/src/assets/styles/themes/paper.css`  | Paper 主题：亮色（暖纸）+ 暗色（深灰卡纸），纯 OKLCH 色彩      |
+| `packages/app/src/assets/styles/themes/paper.css`  | Paper 布局：暖纸配色，纯 OKLCH 色彩                            |
 | `packages/app/src/assets/styles/accessibility.css` | 无障碍：focus-ring / prefers-reduced-motion / prefers-contrast |
-| `packages/app/src/assets/styles/main.css`          | 入口 + 全局 reset + 暗色覆盖                                   |
+| `packages/app/src/assets/styles/main.css`          | 入口 + 全局 reset                                              |
 
 ### 设计哲学
 
@@ -1032,7 +1032,7 @@ MarkLuck/
 │       ├── 01-editor-core.spec.ts
 │       ├── 02-file-operations.spec.ts
 │       ├── 03-search.spec.ts
-│       ├── 04-theme-settings-panels.spec.ts
+│       ├── 04-settings-panels.spec.ts
 │       ├── 05-export-share.spec.ts
 │       ├── 06-security.spec.ts
 │       ├── 07-persistence.spec.ts

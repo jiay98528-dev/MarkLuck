@@ -418,8 +418,8 @@
 
 ## BUG-040: 主题 localStorage 存储格式与测试期望不一致
 
-- **现象**: E2E 测试 `04-theme-settings-panels` 用例 02-03 断言 `localStorage.getItem('markluck-theme')` 为纯字符串 `'dark'`，实际存储为 `{"c":"dark"}`
-- **根因**: `stores/theme.ts:49` — `apply()` 使用 `JSON.stringify({ c: colorScheme.value })` 序列化；测试期望纯字符串
+- **现象**: 旧外观持久化测试断言本地存储格式错误，字符串与对象格式不一致。
+- **根因**: 历史外观状态序列化格式与测试预期不一致。
 - **根因类别**: 状态管理
 - **修复**: (1) `apply()` 改为直接存储 `colorScheme.value` 字符串；(2) `init()` 兼容读取两种格式（先直接字符串检查，再 JSON 解析兜底）
 - **教训**: localStorage 序列化格式是隐式 API 契约。测试断言的格式即是消费者期望的格式。存储格式变更时必须同步更新读取逻辑并保持向后兼容
@@ -700,7 +700,7 @@
 - **现象**: M-R3 响应式审计发现通用 modal/命令面板依赖固定宽度（480/520/560px），在 360px 视口下需要显式 `max-width` 和移动端高度约束才能证明不会横向溢出；导出对话框的三个选项开关仅支持鼠标点击，缺少 `role="switch"`、`aria-checked`、焦点环和 Space/Enter 键盘切换。
 - **根因**: 早期 E2E 只覆盖桌面 happy path 与可见性，未用 360/768/1280/1440 多视口验证核心浮层；`SettingsDialog` 已补齐 switch 语义，但 `ExportDialog` 的同类 toggle 没有同步治理。
 - **根因类别**: 渲染管线 / 可访问性 / 跨平台兼容
-- **修复**: `dialog.css` 为通用 `.modal-card` 增加视口约束和 480px 以下移动端规则；`CommandPalette.vue` 为命令面板增加小屏 `max-width/max-height` 与 footer 换行；`ExportDialog.vue` 为三个导出选项补齐 switch 语义、键盘切换和 focus ring；新增 `17-responsive-a11y-visual.spec.ts` 覆盖 360x740、768x1024、1280x800、1440x900 下 app shell、设置、搜索、模板、导出、文件抽屉、暗色主题与 switch 键盘行为。
+- **修复**: `dialog.css` 为通用 `.modal-card` 增加视口约束和 480px 以下移动端规则；`CommandPalette.vue` 为命令面板增加小屏 `max-width/max-height` 与 footer 换行；`ExportDialog.vue` 为三个导出选项补齐 switch 语义、键盘切换和 focus ring；新增 `17-responsive-a11y-visual.spec.ts` 覆盖 360x740、768x1024、1280x800、1440x900 下 app shell、设置、搜索、模板、导出、文件抽屉与 switch 键盘行为。
 - **验收**: 新增 M-R3 规格 Chromium/Firefox 均 PASS；Chromium 全量 E2E 161/161 PASS；Firefox 全量 E2E 161/161 PASS；`typecheck`、ESLint、stylelint、Prettier 触达文件、Vitest 145/145、build 均通过。
 - **教训**: 发布前 UI 验收不能只看桌面宽屏可见性；任何自绘 toggle 必须按同一语义标准补齐 role/state/keyboard/focus，且核心浮层必须在 360px 视口下有自动化断言。
 

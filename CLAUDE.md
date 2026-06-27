@@ -102,16 +102,16 @@ M0-M6 已完成（总进度 ~90%），当前聚焦 M7 打磨与发布 + M6 Tauri
 
 ### 首次接入必读
 
-| #   | 文档                             | 内容                                   | 状态 |
-| --- | -------------------------------- | -------------------------------------- | :--: |
-| 0   | `PRODUCT.md`                     | 品牌人格、用户画像、设计哲学、反例清单 |  ✅  |
-| 1   | `CLAUDE.md`                      | 本文件 — 项目元指令与开发工作流        |  ✅  |
-| 2   | `doc/PRD.md`                     | 产品需求规格                           |  ✅  |
-| 3   | `doc/TAD.md`                     | 技术架构设计                           |  ✅  |
-| 4   | `spec/decisions.md`              | 架构决策记录 (ADR)                     |  ✅  |
-| 5   | `spec/frontend/design-system.md` | CSS Design Token 定义（v2.0 Paper/OKLCH ✅） |  ✅  |
-| 6   | `spec/milestones.md`             | 里程碑拆分与进度（M0-M9）              |  ✅  |
-| 7   | `memory/bug_log.md`              | 错题本                                 |  ✅  |
+| #   | 文档                                        | 内容                                              | 状态 |
+| --- | ------------------------------------------- | ------------------------------------------------- | :--: |
+| 0   | `PRODUCT.md`                                | 品牌人格、用户画像、设计哲学、反例清单            |  ✅  |
+| 1   | `CLAUDE.md`                                 | 本文件 — 项目元指令与开发工作流                   |  ✅  |
+| 2   | `doc/PRD.md`                                | 产品需求规格                                      |  ✅  |
+| 3   | `doc/TAD.md`                                | 技术架构设计                                      |  ✅  |
+| 4   | `spec/decisions.md`                         | 架构决策记录 (ADR)                                |  ✅  |
+| 5   | `spec/frontend/design-system.md`            | CSS Design Token 定义（v2.0 Paper/OKLCH ✅）      |  ✅  |
+| 6   | `spec/milestones.md`                        | 里程碑拆分与进度（M0-M9）                         |  ✅  |
+| 7   | `memory/bug_log.md`                         | 错题本                                            |  ✅  |
 | 8   | `packages/app/src/assets/styles/tokens.css` | 实际 Design Token 定义（纸张隐喻/OKLCH/三层动效） |  ✅  |
 
 ### 代码规范
@@ -143,7 +143,7 @@ M0-M6 已完成（总进度 ~90%），当前聚焦 M7 打磨与发布 + M6 Tauri
 | 页面规格  | `spec/frontend/pages.md`             | 路由表、页面状态、数据流        |       ✅        |
 | 交互 Mock | `spec/frontend/interactions-mock.md` | Mock 数据与交互场景             | 🔜 编码阶段创建 |
 | 共享类型  | `spec/types/`                        | TypeScript 实体类型、接口定义   |       ✅        |
-| 文字补全  | `spec/frontend/autocomplete-spec.md`  | N-gram/GhostText/基准L2/持久化  |       ✅        |
+| 文字补全  | `spec/frontend/autocomplete-spec.md` | N-gram/GhostText/基准L2/持久化  |       ✅        |
 | 里程碑    | `spec/milestones.md`                 | 各阶段目标、检查点、验收清单    |       🔜        |
 | 错题本    | `memory/bug_log.md`                  | BUG 记录 + 根因 + 检查清单      |       ✅        |
 
@@ -362,12 +362,12 @@ L4 🔷 人工复审     ~10min  每个里程碑末     手感 / 视觉 / 触控
 
 #### L1 ⚡ 写时检查（每次保存触发）
 
-| 检查项          | 命令                                 | 通过标准                         |
-| --------------- | ------------------------------------ | -------------------------------- |
-| TypeScript 类型 | `npx vue-tsc --noEmit`               | 零错误                           |
-| ESLint          | `npx eslint packages/app/src/ packages/renderer/src/`                    | 零警告                           |
-| Prettier        | `npx prettier --check packages/app/src/ packages/renderer/src/`          | 格式一致                         |
-| Stylelint       | `npx stylelint "packages/app/src/**/*.{vue,css}"` | 零错误（强制 OKLCH Token 检查） |
+| 检查项          | 命令                                                            | 通过标准                        |
+| --------------- | --------------------------------------------------------------- | ------------------------------- |
+| TypeScript 类型 | `npx vue-tsc --noEmit`                                          | 零错误                          |
+| ESLint          | `npx eslint packages/app/src/ packages/renderer/src/`           | 零警告                          |
+| Prettier        | `npx prettier --check packages/app/src/ packages/renderer/src/` | 格式一致                        |
+| Stylelint       | `npx stylelint "packages/app/src/**/*.{vue,css}"`               | 零错误（强制 OKLCH Token 检查） |
 
 **不通过 → 立即修复。禁止跳过 L1 直接声称"完成"。**
 
@@ -404,14 +404,14 @@ L4 🔷 人工复审     ~10min  每个里程碑末     手感 / 视觉 / 触控
 > 来源：TeachFlow V1-V5 测试规则，裁剪适配为 MarkLuck 版本
 > 更新：2026-06-08 新增 V6 用户旅程完整性规则
 
-| 规则   | 名称           | 要求                                                            | 反模式                         |
-| ------ | -------------- | --------------------------------------------------------------- | ------------------------------ |
-| **V1** | 交互正确性     | 验证交互后的**结果**（至少两个结果指标）                        | 仅断言 `element.isVisible()`   |
-| **V2** | 文件操作验证   | 文件写入后**读取验证内容**，文件删除后**确认不存在**            | 仅确认操作无报错               |
-| **V3** | 跨会话持久化   | **6步**：写入 → 导航离开 → 返回 → 验证 → 刷新 → 再验证          | 单程 `goto away → goto back`   |
-| **V4** | 内容正确性     | 导出/渲染后的内容**必须与源 Markdown 相关**                     | 仅验证"页面不崩溃"             |
-| **V5** | 按钮完整性     | 每个 `<button>` 必须**点击并验证可观测结果**                    | 仅验证按钮存在                 |
-| **V6** | 用户旅程完整性 | 每个核心功能必须有**≥1 个多步骤端到端测试**（≥4 步用户操作）    | 仅测试孤立交互，无完整工作流   |
+| 规则   | 名称           | 要求                                                         | 反模式                       |
+| ------ | -------------- | ------------------------------------------------------------ | ---------------------------- |
+| **V1** | 交互正确性     | 验证交互后的**结果**（至少两个结果指标）                     | 仅断言 `element.isVisible()` |
+| **V2** | 文件操作验证   | 文件写入后**读取验证内容**，文件删除后**确认不存在**         | 仅确认操作无报错             |
+| **V3** | 跨会话持久化   | **6步**：写入 → 导航离开 → 返回 → 验证 → 刷新 → 再验证       | 单程 `goto away → goto back` |
+| **V4** | 内容正确性     | 导出/渲染后的内容**必须与源 Markdown 相关**                  | 仅验证"页面不崩溃"           |
+| **V5** | 按钮完整性     | 每个 `<button>` 必须**点击并验证可观测结果**                 | 仅验证按钮存在               |
+| **V6** | 用户旅程完整性 | 每个核心功能必须有**≥1 个多步骤端到端测试**（≥4 步用户操作） | 仅测试孤立交互，无完整工作流 |
 
 **V6 用户旅程标准模式**（≥4 步真实用户操作链）：
 
@@ -439,15 +439,15 @@ await expect(page.locator('.wing-bookmark-dot[aria-label="测试笔记"]')).not.
 
 **V6 强制覆盖清单**（每项必须有 ≥1 个测试）：
 
-| # | 用户旅程                            | 最少步骤                     | 状态 |
-|---|-------------------------------------|------------------------------|:---:|
-| 1 | 新建笔记 → 编辑 → 保存 → 删除       | 新建→键入→等保存→切回→删→确认 | ⬜ |
-| 2 | 文件抽屉 → 展开子目录 → 打开文件    | 开抽屉→点目录→点文件→验内容   | ⬜ |
-| 3 | 搜索 → 查看结果 → 点击跳转 → 编辑   | 搜索→验证结果→点击→验跳转     | ⬜ |
-| 4 | 即时渲染: 预览→点击块→编辑→ESC→预览 | 切模式→验块→点击→编辑→ESC     | ⬜ |
-| 5 | 右键菜单: 重命名/删除               | 右击→重命名→验证→右击→删除    | ⬜ |
-| 6 | 导出选项组合: 选格式→改选项→导出    | 选格式→切换选项→导出→验内容   | ⬜ |
-| 7 | 错误恢复: 保存失败 → 重试           | 注入错误→验提示→恢复→验保存   | ⬜ |
+| #   | 用户旅程                            | 最少步骤                      | 状态 |
+| --- | ----------------------------------- | ----------------------------- | :--: |
+| 1   | 新建笔记 → 编辑 → 保存 → 删除       | 新建→键入→等保存→切回→删→确认 |  ⬜  |
+| 2   | 文件抽屉 → 展开子目录 → 打开文件    | 开抽屉→点目录→点文件→验内容   |  ⬜  |
+| 3   | 搜索 → 查看结果 → 点击跳转 → 编辑   | 搜索→验证结果→点击→验跳转     |  ⬜  |
+| 4   | 即时渲染: 预览→点击块→编辑→ESC→预览 | 切模式→验块→点击→编辑→ESC     |  ⬜  |
+| 5   | 右键菜单: 重命名/删除               | 右击→重命名→验证→右击→删除    |  ⬜  |
+| 6   | 导出选项组合: 选格式→改选项→导出    | 选格式→切换选项→导出→验内容   |  ⬜  |
+| 7   | 错误恢复: 保存失败 → 重试           | 注入错误→验提示→恢复→验保存   |  ⬜  |
 
 > **能力边界说明**: 以上 7 项均可在 Web/MockFS 环境下测试，无需 Tauri 运行时。仅真实文件系统操作（系统对话框/回收站）受限于 Playwright 架构，归入 Tauri 桌面端手动测试。
 
@@ -501,14 +501,14 @@ expect(content2).toContain('Hello World');
 
 **标准检查点**（定义于 `e2e/helpers/screenshot-utils.ts:STANDARD_CHECKPOINTS`）：
 
-| #   | 检查点                  | 验证内容                                                     |
-| --- | ----------------------- | ------------------------------------------------------------ |
-| 1   | `app-shell-initial`     | 三区布局、纸张暖色背景、书签圆点、TopBar、无横向溢出         |
-| 2   | `editor-with-content`   | CM6 编辑器、分栏预览、标题层级、代码高亮、状态栏、Wiki-link 样式 |
-| 3   | `dark-theme`            | 暗色 Token 全量切换、三区一致性、暗色代码高亮、对比度达标    |
-| 4   | `template-dialog`       | 模态框居中+遮罩、模板卡片排列、羽翼阴影、纸张表面 Token      |
-| 5   | `search-palette`        | 命令面板居中、输入框自动聚焦、placeholder 可见、面板浮起阴影 |
-| 6   | `export-dialog`         | 格式卡片布局、Toggle 开关可见、选中状态反馈、按钮可点击      |
+| #   | 检查点                | 验证内容                                                         |
+| --- | --------------------- | ---------------------------------------------------------------- |
+| 1   | `app-shell-initial`   | 三区布局、纸张暖色背景、书签圆点、TopBar、无横向溢出             |
+| 2   | `editor-with-content` | CM6 编辑器、分栏预览、标题层级、代码高亮、状态栏、Wiki-link 样式 |
+| 3   | `paper-shell`         | 羽翼布局三栏一致性、代码高亮、对比度达标                         |
+| 4   | `template-dialog`     | 模态框居中+遮罩、模板卡片排列、羽翼阴影、纸张表面 Token          |
+| 5   | `search-palette`      | 命令面板居中、输入框自动聚焦、placeholder 可见、面板浮起阴影     |
+| 6   | `export-dialog`       | 格式卡片布局、Toggle 开关可见、选中状态反馈、按钮可点击          |
 
 **执行流程**：
 
@@ -566,24 +566,24 @@ expect(content2).toContain('Hello World');
 
 **MarkLuck 关键测试场景**（L2 + L3 必须覆盖）：
 
-| 场景类别          | 测试用例                                                                    |      测试层       | 对应规则 |
-| ----------------- | --------------------------------------------------------------------------- | :---------------: | :------: |
-| **Markdown 渲染** | 代码块高亮、表格、LaTeX 公式、嵌套列表、图片引用                            | L2 快照 + L3 截图 |  V1, V4  |
-| **XSS 防护**      | 已知绕过向量注入 → DOMPurify 清洗后不含恶意代码                             |        L2         |    —     |
-| **文件读写**      | 创建→保存→重新打开→内容一致；删除→确认文件消失                              |        L3         |  V2, V3  |
-| **外部编辑**      | MarkLuck 打开文件 → 外部编辑器修改 → MarkLuck 检测变更并刷新                |        L3         |    V1    |
-| **Wiki-link**     | 创建 `[[其他笔记]]` → 渲染为链接 → 点击跳转 → 反向链接面板显示              |      L2 + L3      |  V1, V4  |
-| **搜索**          | 中文搜索、英文搜索、正则搜索、标签过滤、日期范围过滤                        |      L2 + L3      |  V1, V4  |
-| **导出**          | 导出 docx → 解析回读验证；xlsx → sheetjs 回读 cell 级对比；PDF 文本提取对比 |        L2         |  V2, V4  |
-| **模板**          | 使用模板创建笔记 → `{{date}}` 正确替换 → 内容保存正确                       |      L2 + L3      |  V1, V4  |
-| **跨浏览器**      | Chromium / Firefox / WebKit 三引擎并行运行相同测试                          |        L3         |    —     |
+| 场景类别          | 测试用例                                                                    |      测试层       |  对应规则  |
+| ----------------- | --------------------------------------------------------------------------- | :---------------: | :--------: |
+| **Markdown 渲染** | 代码块高亮、表格、LaTeX 公式、嵌套列表、图片引用                            | L2 快照 + L3 截图 |   V1, V4   |
+| **XSS 防护**      | 已知绕过向量注入 → DOMPurify 清洗后不含恶意代码                             |        L2         |     —      |
+| **文件读写**      | 创建→保存→重新打开→内容一致；删除→确认文件消失                              |        L3         |   V2, V3   |
+| **外部编辑**      | MarkLuck 打开文件 → 外部编辑器修改 → MarkLuck 检测变更并刷新                |        L3         |     V1     |
+| **Wiki-link**     | 创建 `[[其他笔记]]` → 渲染为链接 → 点击跳转 → 反向链接面板显示              |      L2 + L3      |   V1, V4   |
+| **搜索**          | 中文搜索、英文搜索、正则搜索、标签过滤、日期范围过滤                        |      L2 + L3      |   V1, V4   |
+| **导出**          | 导出 docx → 解析回读验证；xlsx → sheetjs 回读 cell 级对比；PDF 文本提取对比 |        L2         |   V2, V4   |
+| **模板**          | 使用模板创建笔记 → `{{date}}` 正确替换 → 内容保存正确                       |      L2 + L3      |   V1, V4   |
+| **跨浏览器**      | Chromium / Firefox / WebKit 三引擎并行运行相同测试                          |        L3         |     —      |
 | **用户旅程(1)**   | 新建空白笔记 → 键入内容 → 等待自动保存 → 切换后切回验证 → 删除确认          |        L3         | V6, V2, V3 |
-| **用户旅程(2)**   | 文件抽屉打开 → 展开子目录 → 选择文件 → 验证编辑器内容                       |        L3         |  V6, V1  |
-| **用户旅程(3)**   | Ctrl+K 搜索 → 验证结果 → 点击跳转 → 编辑器内容匹配                          |        L3         |  V6, V1, V4 |
-| **用户旅程(4)**   | 即时渲染: 切换到live → 验证渲染块 → 点击块编辑 → ESC恢复渲染                |        L3         |  V6, V1  |
-| **用户旅程(5)**   | 右键文件 → 重命名 → 验证新名称 → 右键删除 → 确认消失                        |        L3         | V6, V2  |
-| **用户旅程(6)**   | 导出对话框: 选HTML格式 → 关Wiki链接 → 导出 → 下载内容验证                   |        L3         | V6, V4  |
-| **用户旅程(7)**   | 模拟保存失败 → 验证错误提示 → 恢复 → 重试保存成功                           |        L3         |  V6, V1  |
+| **用户旅程(2)**   | 文件抽屉打开 → 展开子目录 → 选择文件 → 验证编辑器内容                       |        L3         |   V6, V1   |
+| **用户旅程(3)**   | Ctrl+K 搜索 → 验证结果 → 点击跳转 → 编辑器内容匹配                          |        L3         | V6, V1, V4 |
+| **用户旅程(4)**   | 即时渲染: 切换到live → 验证渲染块 → 点击块编辑 → ESC恢复渲染                |        L3         |   V6, V1   |
+| **用户旅程(5)**   | 右键文件 → 重命名 → 验证新名称 → 右键删除 → 确认消失                        |        L3         |   V6, V2   |
+| **用户旅程(6)**   | 导出对话框: 选HTML格式 → 关Wiki链接 → 导出 → 下载内容验证                   |        L3         |   V6, V4   |
+| **用户旅程(7)**   | 模拟保存失败 → 验证错误提示 → 恢复 → 重试保存成功                           |        L3         |   V6, V1   |
 
 ---
 
@@ -593,12 +593,12 @@ expect(content2).toContain('Hello World');
 
 **审计维度**（四维全覆盖）：
 
-| 维度                    | 审查内容                                                                                                                              |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **1. 规格一致性**       | 组件 Props/Events 是否完全匹配 `components.md`；样式是否只用 Paper Token（`tokens.css` / `paper.css` 中定义的 CSS 变量，纯 OKLCH，无硬编码色值）；页面状态机是否完整                             |
+| 维度                    | 审查内容                                                                                                                                                                                                                                     |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. 规格一致性**       | 组件 Props/Events 是否完全匹配 `components.md`；样式是否只用 Paper Token（`tokens.css` / `paper.css` 中定义的 CSS 变量，纯 OKLCH，无硬编码色值）；页面状态机是否完整                                                                         |
 | **2. 已知易错点清单**   | 逐项对照 §5.9 的 MarkLuck 特定易错点：文件编码、路径分隔符、大文件卡死、XSS 注入、Wiki-link 死链、循环引用、并发写入冲突、索引不一致、Overlay 遮挡、CSS 类名不一致、E2E 选择器过时。同时执行 L3-S2 AI 视觉分析（如 bailian-vision MCP 可用） |
-| **3. 类型边界与数据流** | TypeScript 类型安全、null/undefined 处理、异常捕获完整性；渲染管线 → Pinia Store → 文件 IO 的数据流是否完整无断裂                     |
-| **4. 跨平台兼容**       | Web (Chrome + Firefox) / Tauri Desktop / Mobile 行为差异；PWA 离线兼容；File System Access API 降级路径                               |
+| **3. 类型边界与数据流** | TypeScript 类型安全、null/undefined 处理、异常捕获完整性；渲染管线 → Pinia Store → 文件 IO 的数据流是否完整无断裂                                                                                                                            |
+| **4. 跨平台兼容**       | Web (Chrome + Firefox) / Tauri Desktop / Mobile 行为差异；PWA 离线兼容；File System Access API 降级路径                                                                                                                                      |
 
 **L3.5 不可跳过的情况**（任一条件满足即必须执行）：
 
@@ -714,14 +714,14 @@ expect(content2).toContain('Hello World');
 
 代码变更后，必须同步更新受影响的规格文档：
 
-| 变更类型      | 需同步的文档                                  |
-| ------------- | --------------------------------------------- |
-| 新增/修改组件 | `components.md`、`types/`                     |
-| 新增/修改页面 | `pages.md`、`interactions-mock.md`            |
+| 变更类型      | 需同步的文档                                                      |
+| ------------- | ----------------------------------------------------------------- |
+| 新增/修改组件 | `components.md`、`types/`                                         |
+| 新增/修改页面 | `pages.md`、`interactions-mock.md`                                |
 | 样式变更      | `design-system.md`、实际 Token 文件（`tokens.css` / `paper.css`） |
-| 架构决策变更  | `decisions.md`（新增 ADR）                    |
-| 依赖变更      | `TAD.md`                                      |
-| 功能范围变更  | `PRD.md`、`milestones.md`                     |
+| 架构决策变更  | `decisions.md`（新增 ADR）                                        |
+| 依赖变更      | `TAD.md`                                                          |
+| 功能范围变更  | `PRD.md`、`milestones.md`                                         |
 
 **检查方法**：每次 L4 人工复审前，执行文档同步检查：
 
@@ -733,24 +733,24 @@ expect(content2).toContain('Hello World');
 
 AI 编码时，额外注意以下 MarkLuck 特定的易错点：
 
-| 易错点             | 说明                                  | 预防措施                                              |
-| ------------------ | ------------------------------------- | ----------------------------------------------------- |
-| **文件编码**       | Windows 中文路径 + UTF-8 BOM 问题     | 读写文件显式指定 UTF-8，测试涵盖中文文件名            |
-| **路径分隔符**     | Windows `\` vs Unix `/`               | 统一使用 `/`，Tauri 侧处理转换                        |
-| **大文件渲染**     | >1MB 的 Markdown 卡死渲染线程         | 设置文件大小上限（建议 5MB），超大文件用分块渲染      |
-| **XSS 注入**       | Markdown 中的 `<script>` 标签         | DOMPurify 必须在 marked 之后、DOM 插入之前执行        |
-| **Wiki-link 死链** | 链接到不存在的笔记                    | 死链用不同样式标注，不报错崩溃                        |
-| **循环引用**       | A → B → A 的反向链接                  | 反向链接计算检测循环，不做无限递归                    |
-| **索引重建**       | .markluck_index.json 与实际文件不一致 | 文件监控检测到变更 → 增量更新索引；提供"重建索引"按钮 |
-| **并发写入**       | 外部编辑器 + MarkLuck 同时保存        | 保存前检查文件 mtime，如外部已修改则提示冲突          |
-| **Overlay 遮挡**   | 抽屉/模态框选择后不关闭，`v-if` overlay 永久阻挡下层点击 | 改变全局 UI 状态的交互在完成使命后必须关闭；文件选择 → `showLeftDrawer = false`；模板/导出 → `showXxx = false` |
-| **CSS 类名不一致** | 渲染器输出类名与 CSS 选择器命名不同步（如 `wikilink` vs `wiki-link`） | 重构改类名时必须 grep 全局所有引用点：渲染器输出 + CSS 定义 + E2E 选择器三方一致 |
-| **E2E 选择器过时** | UI 重构后按钮/文件树等 CSS 类名变更，E2E 测试选择器未同步更新 | 重构完成后必须 grep 所有 `.spec.ts` 中的 CSS 选择器，逐条验证在源码中仍存在 |
-| **Vue scoped keyframes** | `<style scoped>` 中 `@keyframes` 名称被追加 `-data-v-xxx` hash 后缀 | JS 侧检查 CSS 规则时用 `startsWith(name)` 而非 `=== name` |
-| **`:key` + async onMounted** | Editor 组件 `:key="activePath"` 重建时 `onMounted(async)` 中 `view=null` 窗口期导致轮询读到空/旧内容 | 考虑预加载（父组件提前 fetch）、暴露 ready promise、或用 `v-show` + 手动重置替代 `:key` |
-| **CM6 decorations 异步更新** | ViewPlugin 在 `setTimeout`/`Promise` 回调中修改 `this.decorations` 不会自动触发 DOM 重绘 | 修改后必须调用 `view.dispatch({})` 触发空事务（非 `requestMeasure()`—后者只清除不设置）。CM6 只在 update cycle 中读取 decorations 字段 |
-| **CM6 keymap 优先级** | 自定义 Tab handler 注册在 `defaultKeymap`（含 `indentWithTab`）之后，Tab 被缩进逻辑先消费 | 将自定义 keymap extension 放在 `markluckExtensions()` 之前注册。CM6 keymap 按注册顺序执行，先注册先匹配 |
-| **模块级单例 + `:key`** | 组件因 `:key` 重建时，模块级变量被新实例覆盖。Tab keymap 通过全局变量查找 plugin 可能匹配到错误实例 | 通过闭包参数直接传递 plugin spec，不使用模块级 `let` 变量 |
+| 易错点                       | 说明                                                                                                 | 预防措施                                                                                                                               |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **文件编码**                 | Windows 中文路径 + UTF-8 BOM 问题                                                                    | 读写文件显式指定 UTF-8，测试涵盖中文文件名                                                                                             |
+| **路径分隔符**               | Windows `\` vs Unix `/`                                                                              | 统一使用 `/`，Tauri 侧处理转换                                                                                                         |
+| **大文件渲染**               | >1MB 的 Markdown 卡死渲染线程                                                                        | 设置文件大小上限（建议 5MB），超大文件用分块渲染                                                                                       |
+| **XSS 注入**                 | Markdown 中的 `<script>` 标签                                                                        | DOMPurify 必须在 marked 之后、DOM 插入之前执行                                                                                         |
+| **Wiki-link 死链**           | 链接到不存在的笔记                                                                                   | 死链用不同样式标注，不报错崩溃                                                                                                         |
+| **循环引用**                 | A → B → A 的反向链接                                                                                 | 反向链接计算检测循环，不做无限递归                                                                                                     |
+| **索引重建**                 | .markluck_index.json 与实际文件不一致                                                                | 文件监控检测到变更 → 增量更新索引；提供"重建索引"按钮                                                                                  |
+| **并发写入**                 | 外部编辑器 + MarkLuck 同时保存                                                                       | 保存前检查文件 mtime，如外部已修改则提示冲突                                                                                           |
+| **Overlay 遮挡**             | 抽屉/模态框选择后不关闭，`v-if` overlay 永久阻挡下层点击                                             | 改变全局 UI 状态的交互在完成使命后必须关闭；文件选择 → `showLeftDrawer = false`；模板/导出 → `showXxx = false`                         |
+| **CSS 类名不一致**           | 渲染器输出类名与 CSS 选择器命名不同步（如 `wikilink` vs `wiki-link`）                                | 重构改类名时必须 grep 全局所有引用点：渲染器输出 + CSS 定义 + E2E 选择器三方一致                                                       |
+| **E2E 选择器过时**           | UI 重构后按钮/文件树等 CSS 类名变更，E2E 测试选择器未同步更新                                        | 重构完成后必须 grep 所有 `.spec.ts` 中的 CSS 选择器，逐条验证在源码中仍存在                                                            |
+| **Vue scoped keyframes**     | `<style scoped>` 中 `@keyframes` 名称被追加 `-data-v-xxx` hash 后缀                                  | JS 侧检查 CSS 规则时用 `startsWith(name)` 而非 `=== name`                                                                              |
+| **`:key` + async onMounted** | Editor 组件 `:key="activePath"` 重建时 `onMounted(async)` 中 `view=null` 窗口期导致轮询读到空/旧内容 | 考虑预加载（父组件提前 fetch）、暴露 ready promise、或用 `v-show` + 手动重置替代 `:key`                                                |
+| **CM6 decorations 异步更新** | ViewPlugin 在 `setTimeout`/`Promise` 回调中修改 `this.decorations` 不会自动触发 DOM 重绘             | 修改后必须调用 `view.dispatch({})` 触发空事务（非 `requestMeasure()`—后者只清除不设置）。CM6 只在 update cycle 中读取 decorations 字段 |
+| **CM6 keymap 优先级**        | 自定义 Tab handler 注册在 `defaultKeymap`（含 `indentWithTab`）之后，Tab 被缩进逻辑先消费            | 将自定义 keymap extension 放在 `markluckExtensions()` 之前注册。CM6 keymap 按注册顺序执行，先注册先匹配                                |
+| **模块级单例 + `:key`**      | 组件因 `:key` 重建时，模块级变量被新实例覆盖。Tab keymap 通过全局变量查找 plugin 可能匹配到错误实例  | 通过闭包参数直接传递 plugin spec，不使用模块级 `let` 变量                                                                              |
 
 ---
 
@@ -761,12 +761,12 @@ AI 编码时，额外注意以下 MarkLuck 特定的易错点：
 
 ### 代码层 Token 文件
 
-| 文件 | 内容 |
-|------|------|
-| `packages/app/src/assets/styles/tokens.css` | 共享 Token：字体/间距/Z-Index/三层动效体系 |
-| `packages/app/src/assets/styles/themes/paper.css` | Paper 主题：亮色（暖纸）+ 暗色（深灰卡纸），纯 OKLCH 色彩 |
+| 文件                                               | 内容                                                           |
+| -------------------------------------------------- | -------------------------------------------------------------- |
+| `packages/app/src/assets/styles/tokens.css`        | 共享 Token：字体/间距/Z-Index/三层动效体系                     |
+| `packages/app/src/assets/styles/themes/paper.css`  | Paper 布局：暖纸配色，纯 OKLCH 色彩                            |
 | `packages/app/src/assets/styles/accessibility.css` | 无障碍：focus-ring / prefers-reduced-motion / prefers-contrast |
-| `packages/app/src/assets/styles/main.css` | 入口 + 全局 reset + 暗色覆盖 |
+| `packages/app/src/assets/styles/main.css`          | 入口 + 全局 reset                                              |
 
 ### 设计哲学
 
@@ -774,6 +774,7 @@ AI 编码时，额外注意以下 MarkLuck 特定的易错点：
 UI 退后，内容浮现。
 
 **色彩空间**：**纯 OKLCH**（禁止 hex/rgb/hsl）。Token 命名以纸张/墨水为隐喻：
+
 - `--paper-*` — 纸面层级（bg/surface/raised）
 - `--ink-*` — 墨色文字层级（primary/secondary/muted）
 - `--accent` — 单一冷蓝强调色
@@ -781,6 +782,7 @@ UI 退后，内容浮现。
 - `--signal-*` — 语义色（success/warning/error）
 
 **动效**：三层体系
+
 - Tier 1 Tactile (80-120ms): 按钮按压、hover 切换
 - Tier 2 Spatial (250-400ms): 面板展开、页面切换
 - Tier 3 Ambient (1.5-3s): 骨架屏 shimmer、焦点呼吸
@@ -806,16 +808,16 @@ UI 退后，内容浮现。
 
 ### 已确认的关键决策速查
 
-| ADR     | 决策                               |  状态  |
-| ------- | ---------------------------------- | :----: |
-| ADR-001 | Vue 3 而非 React                   | 已采纳 |
-| ADR-002 | Tauri v2 而非 Electron             | 已采纳 |
-| ADR-003 | 文件架构而非数据库                 | 已采纳 |
-| ADR-004 | marked 而非 markdown-it            | 已采纳 |
-| ADR-005 | PDF 用浏览器打印而非 pdfkit        | 已采纳 |
-| ADR-006 | YAML frontmatter + #tag 双标签语法 | 已采纳 |
-| ADR-007 | Wiki-link `[[]]` 语法支持          | 已采纳 |
-| ADR-008 | Tauri v2 统一全端（桌面+移动）     | 已采纳 |
+| ADR     | 决策                                  |  状态  |
+| ------- | ------------------------------------- | :----: |
+| ADR-001 | Vue 3 而非 React                      | 已采纳 |
+| ADR-002 | Tauri v2 而非 Electron                | 已采纳 |
+| ADR-003 | 文件架构而非数据库                    | 已采纳 |
+| ADR-004 | marked 而非 markdown-it               | 已采纳 |
+| ADR-005 | PDF 用浏览器打印而非 pdfkit           | 已采纳 |
+| ADR-006 | YAML frontmatter + #tag 双标签语法    | 已采纳 |
+| ADR-007 | Wiki-link `[[]]` 语法支持             | 已采纳 |
+| ADR-008 | Tauri v2 统一全端（桌面+移动）        | 已采纳 |
 | ADR-009 | Paper 纸张隐喻单主题（替换构成+玻璃） | 已采纳 |
 
 ---
@@ -995,7 +997,7 @@ MarkLuck/
 │       ├── 01-editor-core.spec.ts
 │       ├── 02-file-operations.spec.ts
 │       ├── 03-search.spec.ts
-│       ├── 04-theme-settings-panels.spec.ts
+│       ├── 04-settings-panels.spec.ts
 │       ├── 05-export-share.spec.ts
 │       ├── 06-security.spec.ts
 │       ├── 07-persistence.spec.ts
