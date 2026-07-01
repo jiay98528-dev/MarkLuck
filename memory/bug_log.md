@@ -917,7 +917,7 @@
 - **根因**: Windows NSIS 安装器生成的文件关联使用通用 `Markdown` 作为 ProgID；自定义 hook 又把 `Software\Classes\Markdown\DefaultIcon` 改为 `$INSTDIR\file-icon.ico`。卸载时 Tauri 的 `APP_UNASSOCIATE` 只按安装时备份恢复扩展名默认值并删除 ProgID，未覆盖旧版本 hook 写入的通用 `Markdown` 图标/打开命令和 Explorer 用户级残留。
 - **根因类别**: 跨平台兼容 / 发布资产 / 文件IO
 - **修复**: 本机先执行静默卸载并清理用户级注册表残留；安装器配置把文件关联 ProgID 改为 `MarkLuck.Markdown`，避免继续污染通用 `Markdown` 类；`installer-assets/hooks.nsh` 增加 `NSIS_HOOK_POSTUNINSTALL`，卸载时清理 `MarkLuck.Markdown`、扩展名备份值、Explorer `OpenWithProgids/OpenWithList`，并在确认旧 `Markdown` 类由 MarkLuck 安装目录拥有时兼容删除旧残留。
-- **验证**: 本机卸载后 `D:\MarkLuck` 不存在，卸载项为 0，`HKCU:\Software\Classes\Markdown` 与 `HKCU:\Software\Classes\Applications\markluck.exe` 不存在；新 v0.15 安装器静默安装后 `.md` 指向 `MarkLuck.Markdown`。模拟旧包留下的 `Markdown` 默认关联、DefaultIcon、open command 与 `OpenWithList` 后，再用新 v0.15 静默安装/卸载，`MarkLuck.Markdown`、旧 `Markdown`、卸载项、安装目录均不存在，`.md/.markdown/.mdx` 默认值清空。
+- **验证**: 本机卸载后 `D:\MarkLuck` 不存在，卸载项为 0，`HKCU:\Software\Classes\Markdown` 与 `HKCU:\Software\Classes\Applications\markluck.exe` 不存在；新 v0.15.0 安装器静默安装后 `.md` 指向 `MarkLuck.Markdown`。模拟旧包留下的 `Markdown` 默认关联、DefaultIcon、open command 与 `OpenWithList` 后，再用新 v0.15.0 静默安装/卸载，`MarkLuck.Markdown`、旧 `Markdown`、卸载项、安装目录均不存在，`.md/.markdown/.mdx` 默认值清空。
 - **教训**: Windows 文件关联必须使用应用专属 ProgID，卸载 hook 要清理安装器自定义写入的所有注册表路径；验证不能只看安装目录是否删除，还必须查扩展名默认值、ProgID、OpenWithList/OpenWithProgids 和 shell 图标缓存。
 
 ## 检查清单追加
