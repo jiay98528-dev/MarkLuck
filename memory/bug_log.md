@@ -924,3 +924,58 @@
 
 - [ ] Windows 文件关联不得使用通用 `Markdown` ProgID；应使用应用专属 ProgID，并确保卸载时撤销扩展名默认值、ProgID、OpenWithProgids 和应用打开列表残留。
 - [ ] 发布安装包验收必须包含“安装 → 查看 `.md` 图标/打开方式 → 卸载 → 重新查看图标/打开方式”的闭环，不能只验证安装成功。
+
+## BUG-083: 正则搜索复用 global RegExp 导致连续候选文档漏匹配
+
+- **现象**: 多篇笔记内容都匹配同一个正则时，搜索结果可能隔一篇漏一篇；表现取决于上一次 `RegExp.test()` 后的 `lastIndex`。
+- **根因**: `SearchEngine.search()` 默认用 `gi` flags 构造正则，并在 `candidates.filter()` 中复用同一个 `RegExp` 实例。带 `g` 的正则是有状态对象，跨文档调用 `test()` 会继承上一轮 `lastIndex`。
+- **根因类别**: 索引/搜索
+- **修复**: `SearchQuery` 增加可选 `regexFlags` 类型契约；搜索实现编译正则时剥离 `g` flag，保留大小写等其他 flags；新增连续候选文档回归测试。
+- **验证**: `SearchEngine.test.ts` 定向通过；`vitest run` 188/188 PASS；coverage PASS。
+- **教训**: 过滤链中的正则匹配不得复用带 `g`/`y` 等状态型 flags 的 `RegExp.test()`，除非每次调用前显式重置 `lastIndex`。
+
+## BUG-084: Tauri 文本保存固定 `.md.tmp` 临时文件名存在碰撞风险
+
+- **现象**: 同目录同 stem 但不同扩展名的笔记（如 `same.md` 与 `same.txt`）保存时会落到同一个临时文件路径，快速保存或并发保存存在互相覆盖/rename 错目标风险。
+- **根因**: `fs_ops.rs::write_file_at()` 使用 `target.with_extension("md.tmp")` 生成临时路径，扩展名被固定替换为 `md.tmp`，导致不同原始扩展名收敛到相同临时文件名。
+- **根因类别**: 文件IO / 跨平台兼容
+- **修复**: 新增同目录唯一临时文件 helper，文件名包含原始文件名、进程 id、时间戳和自增计数；保存时写入唯一 temp 后替换目标文件；Windows 使用 `MoveFileExW(REPLACE_EXISTING | WRITE_THROUGH)` 保持覆盖已有文件的保存语义；外部单文件写入也接入同一原子写 helper。
+- **验证**: Rust `fs_ops` 新增 temp path 唯一性和覆盖已有文件测试；`cargo test --manifest-path packages/app/src-tauri/Cargo.toml --lib` 13/13 PASS；`cargo check` PASS。
+- **教训**: 临时文件名必须保留目标文件身份并具备每次写入唯一性；跨平台保存还要显式验证“目标已存在”的覆盖语义，不能假设 `rename` 在所有平台一致。
+
+## 检查清单追加
+
+- [ ] 搜索过滤链中复用 `RegExp` 时，不得保留 `g`/`y` 等会推进 `lastIndex` 的状态型 flags。
+- [ ] 文本保存的临时文件必须与目标文件同目录且每次写入唯一；同 stem 不同扩展名和目标已存在两种路径都要有测试。
+
+## BUG-085: Tauri safe path check allowed symlink/junction escape
+
+- **现象**: notebook root 内如果存在指向外部目录的 symlink/junction，`linked/file.md` 这类路径可能通过旧的 parent lexical check，被当作 root 内安全路径。
+- **根因**: `resolve_safe_path()` 先用 `parent.starts_with(root)` 做字符串/路径前缀判断，未对目标或最近已存在祖先执行 canonicalize 后再校验 root 边界。
+- **根因类别**: 文件IO / 跨平台兼容 / 安全边界
+- **修复**: `is_safe_path()` 改为 canonical root + canonical target/nearest existing ancestor 双路径校验；新增 symlink/junction escape 单测。
+- **教训**: 文件安全边界不得只用 lexical path 判断；写入不存在目标时也必须校验最近已存在祖先的 canonical 路径。
+
+## BUG-086: Web MockFS 默认持久化到 localStorage 偏离“文件即数据源”
+
+- **现象**: Web 预览默认把笔记内容写入 `localStorage`，普通浏览器会话会悄悄变成持久化笔记存储。
+- **根因**: MockFS 最初为 E2E 刷新验证而默认启用 localStorage，但没有区分 E2E 持久化和普通 Web preview。
+- **根因类别**: 文件IO / 状态管理 / 架构偏移
+- **修复**: `MockFSService` 增加 `{ persist }` 选项，默认内存态；`NotebookHome` 仅在 `mode=e2e` 或显式 `VITE_MARKLUCK_MOCKFS_PERSIST=1` 时启用持久化。
+- **教训**: 测试便利开关必须显式隔离，不能改变普通产品路径的数据所有权语义。
+
+## BUG-087: Theme/CSP/Tauri capability boundary too wide for trusted-code themes
+
+- **现象**: Tauri 开启 global API 且 CSP 为空；默认 capability 还开放未使用的 fs 插件权限；外部 theme.css 可声明全局选择器污染宿主 UI。
+- **根因**: Theme API v2 接受 trusted-code 本地信任模型，但宿主边界没有同步最小化：runtime 检测依赖 `window.__TAURI__`，能力文件保留了早期 fs 插件授权，CSS 导入只校验包结构不校验作用域。
+- **根因类别**: 安全边界 / 主题系统 / 跨平台兼容
+- **修复**: 使用 `@tauri-apps/api/core.isTauri()` 代替 global Tauri 检测；关闭 `withGlobalTauri`、设置 CSP、移除 fs 插件 capability；安装主题包时拒绝未包含 `[data-theme-id="..."]` 的 DOM 选择器。
+- **教训**: trusted-code 可以是本地高级能力，但宿主仍应最小暴露 Tauri API、插件权限和 CSS 作用域。
+
+## BUG-088: 文件树、右栏拖拽柄和欢迎页开关缺少键盘/触控语义
+
+- **现象**: FileDrawer treeitem 不可 Tab 聚焦，目录/文件无法通过标准树键盘操作；RightWing resize handle 只支持 mouse；WelcomePage 自绘开关是 span + click，缺少 switch 语义。
+- **根因**: UI 控件早期以鼠标 happy path 为主，未把 tree/separator/switch 的原生语义、focus ring、pointer/touch 输入作为验收条件。
+- **根因类别**: 可访问性 / 前端交互 / 跨平台兼容
+- **修复**: FileDrawer 增加 roving tabindex 与 Arrow/Home/End/Enter/Space 行为；RightWing handle 改为 `role="separator"`、pointer 事件和键盘调宽；WelcomePage toggle 改为 button switch，触控目标提升到 44px。
+- **教训**: 自绘控件必须先补齐 role/state/keyboard/focus/pointer，再谈视觉打磨；鼠标路径通过不等于发布级交互闭环。
