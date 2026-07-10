@@ -1,4 +1,4 @@
-# MarkLuck 错题本
+# JotLuck 错题本
 
 > 版本：v1.0 | 创建日期：2026-06-03
 > 同类根因的 BUG 不应重复出现。任何 Debug/修BUG/编码任务开始前，必须先阅读本文档。
@@ -36,7 +36,7 @@
 - **现象**: 用户输入 Markdown 语法后只看到带语法高亮的源码文本，`# Heading` 显示为彩色 `# Heading` 文本而非大号标题，完全没有任何渲染预览
 - **根因**: `src/utils/cm6-extensions.ts` — 只实现了 `blockDecorator`（画彩色行标记线）和 `throttledParser`（防抖重新解析），从未实现 `BlockWidget`（将 Markdown 块替换为渲染 HTML 的 CM6 Widget）。`blockParser.ts` 中所有块的 `mode` 也硬编码为 `'source'`，没有任何切换到渲染模式的路径
 - **根因类别**: 渲染管线
-- **修复**: 在 `NotebookHome.vue` 中新增全文档预览模式（"预览/编辑"切换按钮），使用 `@markluck/renderer` 的 `renderMarkdown()` 渲染完整文档 HTML，通过 `v-show` 在编辑器和预览视图之间切换。预览模式下应用完整的排版样式（标题层级/代码块/表格/引用等）
+- **修复**: 在 `NotebookHome.vue` 中新增全文档预览模式（"预览/编辑"切换按钮），使用 `@jotluck/renderer` 的 `renderMarkdown()` 渲染完整文档 HTML，通过 `v-show` 在编辑器和预览视图之间切换。预览模式下应用完整的排版样式（标题层级/代码块/表格/引用等）
 - **教训**: 块级混合编辑器的 BlockWidget 是 M1 的核心交付，不能用"BlockParser + 装饰器激活"就标记完成——装饰器只是标记，渲染才是目标。如果全功能 BlockWidget 复杂度太高，至少需要全文档预览作为 fallback
 
 ## BUG-005: 页面设计原始 — 大量组件使用硬编码色值绕过主题系统
@@ -130,7 +130,7 @@
 
 ## BUG-011: Logo 点击无反应 — 缺少导航回首页功能
 
-- **现象**: 用户预期点击左上角 MarkLuck Logo 返回首页/清空编辑器，但无任何反应。
+- **现象**: 用户预期点击左上角 JotLuck Logo 返回首页/清空编辑器，但无任何反应。
 - **根因**: `.wing-logo` 是 `<div>` 元素，未绑定点 click 事件。
 - **根因类别**: 渲染管线（交互缺失）
 - **修复**: div → button + `@click="$emit('select-note', '')"` 清空当前笔记回到空状态。
@@ -149,7 +149,7 @@
 - **现象**: 用户找不到格式工具（加粗/斜体等按钮），以为功能缺失。
 - **根因**: Winged Editor 采用 FormatBubble（选中文字后浮现的气泡），而非固定 FormatToolbar。用户不知道需要选中文字。
 - **根因类别**: 渲染管线（UX 发现性不足）
-- **修复**: (1) 状态栏 "选中文字以格式化" 提示移除 `charCount > 0` 条件，添加呼吸动画（opacity pulse）; (2) 首次选中文字时显示一次性 Toast 通知 "选中文字后使用格式气泡进行加粗、斜体等操作"（localStorage 标记 `markluck:formatBubble:hintShown`）。
+- **修复**: (1) 状态栏 "选中文字以格式化" 提示移除 `charCount > 0` 条件，添加呼吸动画（opacity pulse）; (2) 首次选中文字时显示一次性 Toast 通知 "选中文字后使用格式气泡进行加粗、斜体等操作"（localStorage 标记 `jotluck:formatBubble:hintShown`）。
 - **教训**: 隐式交互（选中触发）必须有显式提示。发现性 = 主动通知 + 持久提示 + 动效。
 
 ## BUG-014: 即时格式预览 (BlockWidget) 未实现 — M1-08 遗留
@@ -260,14 +260,14 @@
   - **修复**: 改为仅 `.status-saved`（2026-06-10, T2 step3 验证通过 ✅）
 
   **缺陷 2 — `onUnmounted` 残留函数污染新组件**
-  - `MarkdownEditor.vue:148-149` — 旧组件 `onUnmounted` 删除了 `__markluck_getEditorContent` 但**未删除** `__markluck_getEditorView` 和 `__markluck_editorInitValue`
+  - `MarkdownEditor.vue:148-149` — 旧组件 `onUnmounted` 删除了 `__jotluck_getEditorContent` 但**未删除** `__jotluck_getEditorView` 和 `__jotluck_editorInitValue`
   - 新组件 setup 重新注册后，时序窗口期内旧函数残留引用了已销毁的 view 对象 → `getEditorView()` 返回非null但 `getEditorContent()` 返回空串
-  - **修复**: `onUnmounted` 增加删除 `__markluck_getEditorView`, `__markluck_editorInitValue`, `__markluck_modelOverwrites`（2026-06-10 ✅）
+  - **修复**: `onUnmounted` 增加删除 `__jotluck_getEditorView`, `__jotluck_editorInitValue`, `__jotluck_modelOverwrites`（2026-06-10 ✅）
 
   **缺陷 3 — Vue 3 `:key` patch 顺序错误：新 setup 先于旧 unmount**
-  - `MarkdownEditor.vue:61,149` — `__markluck_getEditorContent/View` 在 `<script setup>` 顶层注册，旧组件的 `onUnmounted` 删除它们。Vue 3 `:key` 补丁顺序为 **新 setup → 旧 unmount → 新 mount**。旧 unmount 删除了新 setup 刚注册的函数，导致 `view=null` 对外不可见
+  - `MarkdownEditor.vue:61,149` — `__jotluck_getEditorContent/View` 在 `<script setup>` 顶层注册，旧组件的 `onUnmounted` 删除它们。Vue 3 `:key` 补丁顺序为 **新 setup → 旧 unmount → 新 mount**。旧 unmount 删除了新 setup 刚注册的函数，导致 `view=null` 对外不可见
   - **证据**: 生命周期日志显示 `setup(id=j70ame, t=3875) → unmounting(id=i0qy85, t=3876) → mounted(id=j70ame, t=3882)` — setup 在 unmount 之前
-  - **修复**: 将 `__markluck_getEditorContent/View` 注册从 `setup` 移到 `onMounted`（在旧 unmount 之后执行）（2026-06-10 ✅ T2 PASS）
+  - **修复**: 将 `__jotluck_getEditorContent/View` 注册从 `setup` 移到 `onMounted`（在旧 unmount 之后执行）（2026-06-10 ✅ T2 PASS）
 
 - **根因类别**: 状态管理（异步挂载竞态 × `:key` 重建 × updateListener 反馈环 × DOM 清理不完整 — 四重窗口期叠加）
 - **诊断数据**（D2 2026-06-10）:
@@ -280,7 +280,7 @@
   ```
 - **教训**:
   1. **`waitForSaved` 的修复必须实际写代码，不能只记录错题本就标记完成。** BUG-019 记录了修复但 `test-utils.ts` 从未改过
-  2. **`onUnmounted` 中注册的全局对象（window hooks）必须逐条删除，不能漏项。** 遗漏的 `__markluck_getEditorView` 返回已销毁的 view 导致调用方拿到垃圾数据
+  2. **`onUnmounted` 中注册的全局对象（window hooks）必须逐条删除，不能漏项。** 遗漏的 `__jotluck_getEditorView` 返回已销毁的 view 导致调用方拿到垃圾数据
   3. **Vue 3 `:key` 补丁的生命周期顺序是 新 setup → 旧 unmount → 新 mount。** setup 注册的全局函数会被旧 unmount 删除。全局注册应放在 onMounted 中
   4. **`async onMounted` 把 EditorView 创建延迟到 HTTP fetch 之后，造成 view=null 窗口期。** 异步初始化应改为 fire-and-forget，不阻塞 view 创建
 
@@ -349,7 +349,7 @@
 
   **Defect 6 — keymap 优先级倒置** (`MarkdownEditor.vue:73-77`)
   - ghost text Tab handler 注册在 `defaultKeymap`（含 `indentWithTab`）之后，Tab 先被缩进逻辑消费
-  - 修复: `autocompleteCompartment` 移到 `...markluckExtensions()` 之前
+  - 修复: `autocompleteCompartment` 移到 `...jotluckExtensions()` 之前
 
 - **根因类别**: 渲染管线（CM6 ViewPlugin 生命周期）+ 状态管理（predictor/indexData 生命周期）
 - **诊断过程**:
@@ -399,7 +399,7 @@
 - [ ] **`async onMounted` + `:key` 重建组合会导致 `view = null` 窗口期。且 Vue 3 `:key` 补丁顺序为新 setup → 旧 unmount → 新 mount，setup 注册的全局函数会被旧 unmount 删除。全局注册应放在 onMounted 中**（教训：BUG-027）
 - [ ] **规格验收标准必须覆盖完整的模块清单，不能只测试最底层工具而遗漏上层服务。里程碑任务描述应明确区分工具层和服务层测试**（教训：BUG-028）
 - [ ] **CM6 ViewPlugin 的 `setTimeout` 回调中修改 decorations 后必须调用 `view.dispatch({})`（非 `requestMeasure()`）。** 框架只在 update cycle 中读取 decorations 字段，异步回调中修改不会自动触发 DOM 更新（教训：BUG-029 Defect 4）
-- [ ] **CM6 keymap 的 Tab handler 优先级必须高于 `defaultKeymap`（`indentWithTab`）。** 将自定义 keymap extension 放在 `markluckExtensions()` 之前注册（教训：BUG-029 Defect 6）
+- [ ] **CM6 keymap 的 Tab handler 优先级必须高于 `defaultKeymap`（`indentWithTab`）。** 将自定义 keymap extension 放在 `jotluckExtensions()` 之前注册（教训：BUG-029 Defect 6）
 - [ ] **模块级单例变量在组件 `:key` 重建场景下不可靠。** 全局引用会被新实例覆盖。应使用闭包参数传递 plugin spec（教训：BUG-029 Defect 5）
 - [ ] **Vue 组件 `onUnmounted` 中必须持久化有状态服务。** 漏掉 `closeDocument()` 导致跨会话数据全部丢失（教训：BUG-029 Defect 3）
 - [ ] **降低 N-gram 阈值会引入噪声预测。短上下文仅适用于结构化预测（`[[`/`#`/路径/格式闭合），N-gram 必须保持足够上下文长度**（教训：BUG-030）
@@ -715,16 +715,16 @@
 - **根因**: Web MockFS 的路径契约是“以 `/` 表示笔记本根”，Rust 层未做相同归一化；`root.join(Path::new("/x.md"))` 不等价于 `root/x.md`，而是尝试逃出 root。既有 Rust 测试只验证相对路径，未覆盖前端真实传入的 notebook-root marker。
 - **根因类别**: 文件IO / 跨平台兼容 / 类型边界
 - **修复**: `resolve_safe_path()` 将前导 `/` 视为 notebook-root marker 并剥离，再做绝对路径和 `..` 逃逸检查；新增 Rust 单元测试覆盖 `/notes/test.md`、`/`、真实绝对路径拒绝。`fs_ops.rs` 增加可测试内部函数，并在真实临时目录中验证文本写读、二进制写读、重命名、列目录和路径逃逸拒绝。
-- **验收**: `cargo fmt --check` PASS；`cargo test` 6/6 PASS；`pnpm.cmd --filter @markluck/app tauri:build:debug` PASS。
+- **验收**: `cargo fmt --check` PASS；`cargo test` 6/6 PASS；`pnpm.cmd --filter @jotluck/app tauri:build:debug` PASS。
 - **教训**: Web/MockFS 的路径语义必须在 Tauri/Rust 边界显式归一化；任何跨端文件接口测试都必须使用真实前端会传入的路径形态，而不是只测 Rust 自然相对路径。
 
 ## BUG-065: Tauri v2 旧式 `plugins.fs.scope` 配置导致桌面端启动即 panic
 
-- **现象**: `pnpm.cmd --filter @markluck/app tauri:dev` 启动到 `target\debug\markluck.exe` 后直接 panic：`PluginInitialization("fs", "Error deserializing 'plugins.fs' ... unknown field scope, expected requireLiteralLeadingDot")`。
+- **现象**: `pnpm.cmd --filter @jotluck/app tauri:dev` 启动到 `target\debug\JotLuck.exe` 后直接 panic：`PluginInitialization("fs", "Error deserializing 'plugins.fs' ... unknown field scope, expected requireLiteralLeadingDot")`。
 - **根因**: `tauri.conf.json` 仍保留旧版 `plugins.fs.scope.allow/deny` 配置；当前 `@tauri-apps/plugin-fs` v2.5.x 已不接受该字段。权限已经在 `capabilities/default.json` 中配置，旧 scope 块既无必要又会阻断运行时初始化。
 - **根因类别**: 跨平台兼容 / 类型边界
 - **修复**: 删除 `tauri.conf.json` 中过时的 `plugins.fs.scope` 块，保留 shell 插件配置；Tauri 文件访问继续由 capabilities 和自定义 IPC 控制。
-- **验收**: 修复前 `tauri:dev` 复现 panic；修复后 `tauri:dev` 启动到 `[app_lib][INFO] MarkLuck Tauri backend initialized`；最终 `tauri:build:debug` PASS 并生成 `MarkLuck_0.1.0_x64-setup.exe`。
+- **验收**: 修复前 `tauri:dev` 复现 panic；修复后 `tauri:dev` 启动到 `[app_lib][INFO] JotLuck Tauri backend initialized`；最终 `tauri:build:debug` PASS 并生成 `JotLuck_0.1.0_x64-setup.exe`。
 - **教训**: Tauri 插件升级后，能 build 不代表运行时配置有效；桌面端发布闸门必须包含 `tauri:dev` 实际启动，不能只跑 bundle build。
 
 ## 检查清单增补
@@ -734,7 +734,7 @@
 
 ## BUG-066: 启动后台版本检查未尊重自动检查开关
 
-- **现象**: M-R5 网络隐私审计发现，应用初始化 15 秒后会无条件调用 GitHub release API；即使用户未开启或已关闭 `markluck:version:autoCheck`，仍可能产生启动联网。
+- **现象**: M-R5 网络隐私审计发现，应用初始化 15 秒后会无条件调用 GitHub release API；即使用户未开启或已关闭 `jotluck:version:autoCheck`，仍可能产生启动联网。
 - **根因**: `useVersionCheck` 内部的 `checkForUpdates()` 会读取自动检查设置，但 `NotebookHome.vue` 挂载后的后台定时器直接调用 `checkNow()`，绕过了设置门控。
 - **根因类别**: 跨平台兼容 / 状态管理 / 安全隐私
 - **修复**: 在 `NotebookHome.vue` 增加 `VERSION_AUTO_CHECK_KEY` 与 `shouldRunBackgroundVersionCheck()`，后台延迟检查前先读取本地开关；新增 E2E 拦截 `https://api.github.com/**`，验证自动检查关闭时启动 16 秒内请求数为 0。
@@ -757,9 +757,9 @@
 ## BUG-068: Windows Playwright webServer 使用 `pnpm` 导致最终 E2E 启动不稳定
 
 - **现象**: M-R7 最终 E2E 在 Windows 环境下由 Playwright `webServer` 拉起 dev server 时可能超时，手动命令可运行但测试入口不稳定。
-- **根因**: `packages/app/playwright.config.ts` 使用 `pnpm --filter @markluck/app dev`，Windows 下非 shell 场景对 shim 解析不如 `pnpm.cmd` 稳定；30s 超时对 Vite 冷启动和依赖扫描偏紧。
+- **根因**: `packages/app/playwright.config.ts` 使用 `pnpm --filter @jotluck/app dev`，Windows 下非 shell 场景对 shim 解析不如 `pnpm.cmd` 稳定；30s 超时对 Vite 冷启动和依赖扫描偏紧。
 - **根因类别**: 跨平台兼容 / 测试基础设施
-- **修复**: webServer 命令改为 `pnpm.cmd --filter @markluck/app dev`，timeout 提升到 60s。
+- **修复**: webServer 命令改为 `pnpm.cmd --filter @jotluck/app dev`，timeout 提升到 60s。
 - **教训**: 发布级 E2E 配置必须使用目标平台稳定可执行入口；Windows 下优先显式 `.cmd`，避免 shell shim 假设。
 
 ## BUG-069: NotebookHome 主 chunk 过大且 Tauri event 静态/动态导入混用
@@ -786,7 +786,7 @@
 
 ## BUG-071: 桌面安装版双击 Markdown 文件后打开空白编辑页
 
-- **现象**: 在 Windows 桌面双击 `.md` 文件会启动 MarkLuck，但应用只显示无标题空白编辑页，目标文件内容没有被读取，文件抽屉也可能停留在“未打开笔记本”。
+- **现象**: 在 Windows 桌面双击 `.md` 文件会启动 JotLuck，但应用只显示无标题空白编辑页，目标文件内容没有被读取，文件抽屉也可能停留在“未打开笔记本”。
 - **根因**: Tauri 启动参数只以裸绝对路径字符串保存并发送给前端；前端把它当作笔记本内部路径使用，没有先打开目标文件的父目录作为 notebook root。启动期事件还可能早于前端 listener 注册，导致待打开文件丢失；已有运行实例也没有单实例路由接收后续双击文件。
 - **根因类别**: 文件IO / 跨平台兼容 / 状态管理
 - **修复**: Tauri 将启动参数结构化为 `{ absolutePath, notebookRoot, relativePath }`；前端启动时先消费 `get_opened_file`，再监听 `opened-file` 事件；收到文件后先 `openNotebookAt(notebookRoot)`、重建索引，再选中并读取 `relativePath`。补入 `tauri-plugin-single-instance`，让已运行实例也能接收后续文件打开事件。
@@ -798,7 +798,7 @@
 - **现象**: 安装版启动后顶部仍显示示例笔记本语义，但文件抽屉显示“未打开笔记本”；预设的新手引导和格式示例文档不可见。
 - **根因**: Web MockFS 有内存种子数据，但 Tauri 桌面端正常启动时没有真实 notebook root，也没有在用户本地目录创建示例笔记本。MockFS 历史种子还存在乱码和版本缓存，导致 Web/E2E 与安装版真实体验分叉。
 - **根因类别**: 文件IO / 状态管理 / 跨平台兼容
-- **修复**: 新增 Rust `open_sample_notebook`，在 `%LOCALAPPDATA%/MarkLuck/示例笔记本` 下按缺失写入 `快速入门.md`、`格式示例.md`、`项目规划.md`；前端桌面启动时无最近笔记本则打开示例笔记本。MockFS 种子重写为 UTF-8，提升 storage version，确保 Web 测试和桌面默认体验一致。
+- **修复**: 新增 Rust `open_sample_notebook`，在 `%LOCALAPPDATA%/JotLuck/示例笔记本` 下按缺失写入 `快速入门.md`、`格式示例.md`、`项目规划.md`；前端桌面启动时无最近笔记本则打开示例笔记本。MockFS 种子重写为 UTF-8，提升 storage version，确保 Web 测试和桌面默认体验一致。
 - **验收**: MockFS 单测覆盖默认文档；E2E Wiki-link、文件抽屉和用户旅程在 Chromium/Firefox 全量通过。
 - **教训**: “默认文档”不能只存在于 Web mock。任何首次体验核心内容都必须在真实桌面文件系统中有等价种子路径，并且 root 状态只能有一个来源。
 
@@ -822,10 +822,10 @@
 
 ## BUG-075: 欢迎页默认 Markdown 应用设置制造 no-op 成功假象
 
-- **现象**: 欢迎页选择“默认开启 Markdown 格式”后没有实际设置系统默认应用，用户仍需在 Windows 系统设置中手动选择 MarkLuck。
+- **现象**: 欢迎页选择“默认开启 Markdown 格式”后没有实际设置系统默认应用，用户仍需在 Windows 系统设置中手动选择 JotLuck。
 - **根因**: Windows 不允许普通应用静默强制成为 `.md` 默认应用；原逻辑把“用户点击过按钮”持久化成近似成功态，产品文案误导用户。
 - **根因类别**: 跨平台兼容 / 状态管理
-- **修复**: 文案改为说明“安装器已注册 MarkLuck 为可选打开程序，系统默认应用需用户手动选择”；按钮改为打开 `ms-settings:defaultapps`，失败时展示手动路径说明；只持久化“已查看/已尝试设置”，不持久化“已成功设为默认”。
+- **修复**: 文案改为说明“安装器已注册 JotLuck 为可选打开程序，系统默认应用需用户手动选择”；按钮改为打开 `ms-settings:defaultapps`，失败时展示手动路径说明；只持久化“已查看/已尝试设置”，不持久化“已成功设为默认”。
 - **验收**: 欢迎页 E2E 继续 PASS；安装版 GUI 风险复核已确认文案不会误导用户“已自动设为默认”，并提供系统设置/人工路径。
 - **教训**: 操作系统级能力不可达时，产品必须给出真实状态和下一步路径，禁止用本地 flag 伪装成功。
 
@@ -911,13 +911,13 @@
 - [ ] 单文件会话左侧彩色圆点只显示当前文件和用户本会话实际打开过的文件，不能加入扫描得到但未点击的文件。
 - [ ] 抽屉、弹层、确认框的入场动画不得让可交互元素长期停留在视口外；E2E 需要验证实际点击，不只验证 DOM 可见。
 
-## BUG-082: 卸载后 `.md` 文件图标仍残留 MarkLuck 图标
+## BUG-082: 卸载后 `.md` 文件图标仍残留 JotLuck 图标
 
-- **现象**: 本机卸载 MarkLuck 后，`.md` 文件的关联图标仍然显示为 MarkLuck 文件图标；注册表中 `.md/.markdown/.mdx` 扩展名仍可能指向旧 `Markdown` ProgID，且 Explorer `OpenWithList/OpenWithProgids` 中可能残留 `markluck.exe` 或 `Markdown`。
+- **现象**: 本机卸载 JotLuck 后，`.md` 文件的关联图标仍然显示为 JotLuck 文件图标；注册表中 `.md/.markdown/.mdx` 扩展名仍可能指向旧 `Markdown` ProgID，且 Explorer `OpenWithList/OpenWithProgids` 中可能残留 `JotLuck.exe` 或 `Markdown`。
 - **根因**: Windows NSIS 安装器生成的文件关联使用通用 `Markdown` 作为 ProgID；自定义 hook 又把 `Software\Classes\Markdown\DefaultIcon` 改为 `$INSTDIR\file-icon.ico`。卸载时 Tauri 的 `APP_UNASSOCIATE` 只按安装时备份恢复扩展名默认值并删除 ProgID，未覆盖旧版本 hook 写入的通用 `Markdown` 图标/打开命令和 Explorer 用户级残留。
 - **根因类别**: 跨平台兼容 / 发布资产 / 文件IO
-- **修复**: 本机先执行静默卸载并清理用户级注册表残留；安装器配置把文件关联 ProgID 改为 `MarkLuck.Markdown`，避免继续污染通用 `Markdown` 类；`installer-assets/hooks.nsh` 增加 `NSIS_HOOK_POSTUNINSTALL`，卸载时清理 `MarkLuck.Markdown`、扩展名备份值、Explorer `OpenWithProgids/OpenWithList`，并在确认旧 `Markdown` 类由 MarkLuck 安装目录拥有时兼容删除旧残留。
-- **验证**: 本机卸载后 `D:\MarkLuck` 不存在，卸载项为 0，`HKCU:\Software\Classes\Markdown` 与 `HKCU:\Software\Classes\Applications\markluck.exe` 不存在；新 v0.15.0 安装器静默安装后 `.md` 指向 `MarkLuck.Markdown`。模拟旧包留下的 `Markdown` 默认关联、DefaultIcon、open command 与 `OpenWithList` 后，再用新 v0.15.0 静默安装/卸载，`MarkLuck.Markdown`、旧 `Markdown`、卸载项、安装目录均不存在，`.md/.markdown/.mdx` 默认值清空。
+- **修复**: 本机先执行静默卸载并清理用户级注册表残留；安装器配置把文件关联 ProgID 改为 `JotLuck.Markdown`，避免继续污染通用 `Markdown` 类；`installer-assets/hooks.nsh` 增加 `NSIS_HOOK_POSTUNINSTALL`，卸载时清理 `JotLuck.Markdown`、扩展名备份值、Explorer `OpenWithProgids/OpenWithList`，并在确认旧 `Markdown` 类由 JotLuck 安装目录拥有时兼容删除旧残留。
+- **验证**: 本机卸载后 `D:\JotLuck` 不存在，卸载项为 0，`HKCU:\Software\Classes\Markdown` 与 `HKCU:\Software\Classes\Applications\JotLuck.exe` 不存在；新 v0.15.0 安装器静默安装后 `.md` 指向 `JotLuck.Markdown`。模拟旧包留下的 `Markdown` 默认关联、DefaultIcon、open command 与 `OpenWithList` 后，再用新 v0.15.0 静默安装/卸载，`JotLuck.Markdown`、旧 `Markdown`、卸载项、安装目录均不存在，`.md/.markdown/.mdx` 默认值清空。
 - **教训**: Windows 文件关联必须使用应用专属 ProgID，卸载 hook 要清理安装器自定义写入的所有注册表路径；验证不能只看安装目录是否删除，还必须查扩展名默认值、ProgID、OpenWithList/OpenWithProgids 和 shell 图标缓存。
 
 ## 检查清单追加
@@ -961,7 +961,7 @@
 - **现象**: Web 预览默认把笔记内容写入 `localStorage`，普通浏览器会话会悄悄变成持久化笔记存储。
 - **根因**: MockFS 最初为 E2E 刷新验证而默认启用 localStorage，但没有区分 E2E 持久化和普通 Web preview。
 - **根因类别**: 文件IO / 状态管理 / 架构偏移
-- **修复**: `MockFSService` 增加 `{ persist }` 选项，默认内存态；`NotebookHome` 仅在 `mode=e2e` 或显式 `VITE_MARKLUCK_MOCKFS_PERSIST=1` 时启用持久化。
+- **修复**: `MockFSService` 增加 `{ persist }` 选项，默认内存态；`NotebookHome` 仅在 `mode=e2e` 或显式 `VITE_JotLuck_MOCKFS_PERSIST=1` 时启用持久化。
 - **教训**: 测试便利开关必须显式隔离，不能改变普通产品路径的数据所有权语义。
 
 ## BUG-087: Theme/CSP/Tauri capability boundary too wide for trusted-code themes
@@ -979,3 +979,71 @@
 - **根因类别**: 可访问性 / 前端交互 / 跨平台兼容
 - **修复**: FileDrawer 增加 roving tabindex 与 Arrow/Home/End/Enter/Space 行为；RightWing handle 改为 `role="separator"`、pointer 事件和键盘调宽；WelcomePage toggle 改为 button switch，触控目标提升到 44px。
 - **教训**: 自绘控件必须先补齐 role/state/keyboard/focus/pointer，再谈视觉打磨；鼠标路径通过不等于发布级交互闭环。
+
+## BUG-089: 外部 MD 启用编辑过早显示完整工作区导致首轮编辑丢失
+
+- **现象**: 外部 Markdown 只读预览点击“启用编辑”后，完整工作区会先出现，但当前文件尚未完成 `activePath` 选中；用户或 E2E 立即输入后，内容会被后续 `onSelectNote()` 读取原文件覆盖，文件抽屉/搜索/保存链路表现为未进入普通笔记本。
+- **根因**: `openExternalParentAsNotebook()` 先把 `externalSessionMode` 置为 `none` 并清空外部会话，再异步打开父目录、写入 MockFS、构建索引和选中文件。UI 状态切换早于数据状态机完成，造成 AppShell 在 `activePath=''` 的中间态可交互。E2E bridge 还可能被过渡残留编辑器污染，放大了竞态。
+- **根因类别**: 状态管理 / 文件IO / E2E 基础设施
+- **修复**: 外部只读页在晋升期间保持 `readonly + loading`，等待父目录打开、MockFS hydration、索引初始化和 `onSelectNote(target.relativePath)` 全部完成后，才切到普通工作区并清空外部会话；`MarkdownEditor` E2E bridge 在 focus/mousedown 时重新注册当前实例，避免隐藏旧编辑器污染测试通道；外部文件 E2E 改为验证父目录笔记本、同目录文件、MockFS 落盘和切回读闭环。
+- **验证**: `pnpm typecheck` PASS；`pnpm lint` PASS；`pnpm --filter @jotluck/app lint:style` PASS；`pnpm test` 272/272 PASS；Chromium 定向 E2E `16-user-journeys.spec.ts -g "外部文件"` PASS。
+- **教训**: 页面外壳切换必须滞后于关键数据状态完成；任何“先显示再补 activePath”的中间态都会让用户输入和异步读文件产生覆盖竞态。E2E bridge 必须绑定当前可见编辑器实例，不能默认全局单例永远新鲜。
+
+## 检查清单追加
+
+- [ ] 外部只读文件晋升为父目录笔记本时，必须先完成 notebook root、文件树、索引和 `activePath` 选中，再显示可编辑 AppShell。
+- [ ] 涉及 `<Transition>`/主题 slot 的编辑器 E2E，不得默认使用全局旧 bridge；测试桥应在当前可见编辑器 focus/mousedown 时刷新。
+
+## BUG-090: E2E 默认读取测试桥导致编辑器内容断言可能假绿
+
+- **现象**: E2E `getEditorContent()` 优先读取全局 bridge 内容，测试可能在可见编辑器未正确渲染或旧编辑器残留时仍通过；JotLuck 改名后大小写不同的 storage key 也可能导致状态清理不完整。
+- **根因**: 测试 helper 把诊断桥作为默认内容源，绕过了用户真实可见 DOM；storage 清理只匹配旧前缀。
+- **根因类别**: E2E 基础设施 / 状态管理
+- **修复**: `getEditorContent()` 默认读取可见 `.cm-content` DOM；新增 `getEditorContentFromBridge()` 仅供源码精确断言显式调用；E2E 状态清理同时识别 `jotluck` / `JotLuck`，base URL 环境变量统一为 `JOTLUCK_E2E_BASE_URL`。
+- **验证**: Chromium 定向 E2E `07-persistence + 15-autocomplete-journey` 9/9 PASS；`pnpm test` 277/277 PASS。
+- **教训**: E2E 默认 helper 必须模拟用户可见结果；测试桥只能用于明确的诊断或源码精确断言，不能作为默认通过路径。
+
+## BUG-091: 外部文件与索引命令信任前端传入 root 造成文件边界过宽
+
+- **现象**: Tauri `build_index` / `update_index_document` 接收前端 rootPath，外部单文件读写缺少 Rust 侧会话授权状态；收紧后又暴露出“另存为新文件”因目标不存在被拒绝的问题。
+- **根因**: 文件边界由前端参数表达，Rust 没有统一以 `NotebookRoot` 和显式登记的 `ExternalAccessRoots` 为真源；写入路径复用读取解析，错误要求目标文件预先存在。
+- **根因类别**: 文件IO / 跨平台兼容 / 安全边界
+- **修复**: 索引命令只从 `NotebookRoot` 读取当前笔记本根；外部文件读写引入 `ExternalAccessRoots`，仅允许文件关联、单实例事件或一方保存流程登记的父目录；写入解析允许在已授权父目录下创建新 `.md/.markdown/.mdx/.txt` 文件。
+- **验证**: `cargo check` PASS；`cargo test` 16/16 PASS；`pnpm --filter @jotluck/app tauri:build` 成功生成 `JotLuck_0.15.0_x64-setup.exe`。
+- **教训**: 桌面端文件命令的边界必须在 Rust 状态中闭合，不能由前端每次传 root 决定；读路径和写路径解析规则不同，另存为新文件必须单独测试。
+
+## BUG-092: 文字补全与自定义模板把正文派生数据藏进 localStorage
+
+- **现象**: 补全 ngram、训练 meta 和 accepted lexicon 使用全局 key，跨笔记本可能串数据；自定义模板把当前笔记全文写入 localStorage，脱离“文件即数据源”的产品边界。
+- **根因**: 早期持久化为了功能速度直接使用全局 localStorage，没有按 notebook root 隔离，也没有把用户自定义模板纳入笔记本文件域。
+- **根因类别**: 状态管理 / 文件IO / 产品边界
+- **修复**: 补全学习数据改为 `jotluck:scope:<notebook-root-hash>:...`，首次加载迁移并清理旧全局 key；训练 meta 同步按 scope 读写；自定义模板迁移到当前笔记本 `/.jotluck/templates/` 文件目录，临时草稿和外部单文件禁用“保存当前为模板”。
+- **验证**: `TemplateEngine.test.ts` 覆盖文件模板保存/迁移/受控删除；`MarkdownPredictor` 与 `CompletionTrainingService` 单测更新后通过；coverage 总体 94.6%。
+- **教训**: “本地优先”不等于“任何本地存储都可以藏正文”。正文或正文派生的长期数据必须有明确 scope；用户模板应成为用户文件域的一部分。
+
+## BUG-093: CSV 导出未防护公式注入且 RC gate 可被旧报告误放行
+
+- **现象**: CSV 表格单元格或无表格整文单格以 `= + - @ tab CR` 开头时，表格软件可能按公式执行；RC gate 只检查报告标记和 PASS，未重新计算安装包 hash，旧 L4 报告可能对应旧安装包。
+- **根因**: CSV 转义只处理逗号、引号和换行，未做 spreadsheet formula injection 防护；发布闸门没有把安装包路径、版本、SHA256 与当前产物绑定。
+- **根因类别**: 导出 / 发布工程 / 安全边界
+- **修复**: CSV 所有单元格统一对危险前缀加单引号后再做 RFC 风格转义；RC gate 要求 `L4-APP-VERSION`、`L4-INSTALLER-PATH`、`L4-INSTALLER-SHA256`，并重新计算当前安装包 hash、校验报告新鲜度；CI 增加 Rust check/test/audit 和 Windows Tauri build。
+- **验证**: `Exporter.test.ts` 覆盖表格与整文单格 CSV 注入；`pnpm audit --audit-level high` PASS；release gate `--help` 和模板路径输出可用，安装包 SHA256 已计算。
+- **教训**: CSV 是可执行表格输入，不是纯文本；发布闸门必须绑定真实产物身份，不能只信报告里写了 PASS。
+
+## 检查清单追加
+
+- [ ] E2E 默认内容 helper 只读可见 DOM；需要源码精确内容时必须显式调用 bridge-only helper。
+- [ ] Tauri 索引命令不得接受前端 rootPath，必须使用 Rust 侧 `NotebookRoot`。
+- [ ] 外部文件读写必须先登记父目录；写入新文件必须校验已存在父目录的 canonical 边界。
+- [ ] 补全、训练和用户模板等正文派生数据必须按 notebook scope 或文件域持久化，不得使用全局 localStorage key 长期保存。
+- [ ] CSV 导出所有单元格必须经过公式注入防护，包括无表格时的整文单格。
+- [ ] RC gate 必须校验安装包路径、版本、SHA256 和 L4 报告时间，不得接受旧报告或手写 PASS。
+- [ ] P2 release hardening must keep app identity, Tauri capabilities, native watcher lifecycle, and Markdown renderer boundary tests synchronized before packaging.
+
+## BUG-094: P2 发布质量项缺少资源生命周期与发布身份防回归约束
+
+- **现象**: 发布元信息散落在设置页和更新检查；Tauri capability 仍保留无作用域 `shell:allow-open`；Rust 文件 watcher 通过泄漏 watcher 保持运行；Markdown 边界修复缺少系统性回归测试。
+- **根因**: P0/P1 修复聚焦阻断项，P2 发布质量项没有同步形成单一配置源、静态权限测试、watcher stop/replace 状态机和 renderer/live-preview 双链路测试。
+- **根因类别**: 发布工程 / 跨平台兼容 / 渲染管线 / 状态管理
+- **修复**: 新增 `app-meta` 单一配置源；移除无作用域 shell 权限并补静态测试；Rust watcher 改为可停止单例并接入前端 `unwatchAll()`；补 Setext、表格、列表、fenced code、裸 JSON-like 块回归测试；ThemeDialog 补安全区与稳定滚动槽。
+- **教训**: 发布质量项不能只靠人工清单；凡是“版本身份、权限、系统资源、渲染边界”都必须落到自动化测试或集中配置源中。

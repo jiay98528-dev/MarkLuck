@@ -1,0 +1,2035 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>JotLuck 竞品调研与发行机会图谱</title>
+    <style>
+      :root {
+        --paper-bg: oklch(0.975 0.003 85);
+        --paper-left: oklch(0.972 0.004 88);
+        --paper-surface: oklch(0.985 0.002 85);
+        --paper-right: oklch(0.978 0.002 82);
+        --paper-raised: oklch(1 0 0);
+        --ink-primary: oklch(0.15 0.003 85);
+        --ink-secondary: oklch(0.42 0.003 85);
+        --ink-muted: oklch(0.6 0.002 85);
+        --accent: oklch(0.52 0.12 250);
+        --accent-soft: oklch(0.92 0.03 250 / 0.55);
+        --accent-faint: oklch(0.96 0.02 250 / 0.22);
+        --warning: oklch(0.63 0.15 82);
+        --warning-soft: oklch(0.94 0.06 82 / 0.28);
+        --danger: oklch(0.48 0.17 25);
+        --danger-soft: oklch(0.94 0.04 25 / 0.26);
+        --success: oklch(0.56 0.14 158);
+        --success-soft: oklch(0.92 0.04 158 / 0.3);
+        --rule: oklch(0.88 0.003 85);
+        --rule-strong: oklch(0.78 0.005 85);
+        --shadow-sheet: 0 1px 3px oklch(0.15 0.003 85 / 0.04);
+        --shadow-stack: 0 8px 28px oklch(0.15 0.003 85 / 0.08);
+        --shadow-float: 0 18px 40px oklch(0.15 0.003 85 / 0.12);
+        --radius-sm: 10px;
+        --radius-md: 16px;
+        --radius-lg: 24px;
+        --space-4: 4px;
+        --space-8: 8px;
+        --space-12: 12px;
+        --space-16: 16px;
+        --space-20: 20px;
+        --space-24: 24px;
+        --space-32: 32px;
+        --space-40: 40px;
+        --space-56: 56px;
+        --space-72: 72px;
+        --text-xs: 12px;
+        --text-sm: 14px;
+        --text-base: 16px;
+        --text-lg: 20px;
+        --text-xl: 28px;
+        --text-2xl: 42px;
+        --text-hero: 64px;
+        --ff-body:
+          "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+        --ff-display:
+          "Iowan Old Style", "Palatino Linotype", "Source Han Serif SC", "STSong",
+          "Noto Serif CJK SC", serif;
+        --ff-mono:
+          "Cascadia Code", "JetBrains Mono", "SFMono-Regular", "Consolas", monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink-primary);
+        background:
+          radial-gradient(circle at top left, oklch(0.99 0.01 88), transparent 28%),
+          linear-gradient(180deg, var(--paper-left), var(--paper-bg) 24%, var(--paper-right));
+        font-family: var(--ff-body);
+        line-height: 1.6;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .page {
+        width: min(1480px, calc(100vw - 48px));
+        margin: 0 auto;
+        padding: 32px 0 72px;
+      }
+
+      .card {
+        background: color-mix(in oklch, var(--paper-raised) 86%, transparent);
+        border: 1px solid color-mix(in oklch, var(--rule) 92%, white);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sheet);
+        backdrop-filter: blur(8px);
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        padding: 36px 40px;
+        box-shadow: var(--shadow-stack);
+      }
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(135deg, var(--accent-faint), transparent 46%),
+          radial-gradient(circle at 88% 16%, var(--warning-soft), transparent 26%);
+        pointer-events: none;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in oklch, var(--accent) 24%, var(--rule));
+        background: color-mix(in oklch, var(--accent-soft) 42%, white);
+        color: var(--ink-secondary);
+        font-size: var(--text-sm);
+      }
+
+      .hero-grid {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 28px;
+        margin-top: 22px;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        font-family: var(--ff-display);
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+      }
+
+      h1 {
+        font-size: clamp(40px, 5vw, var(--text-hero));
+        max-width: 9.4em;
+      }
+
+      .hero p {
+        margin: 16px 0 0;
+        max-width: 56rem;
+        color: var(--ink-secondary);
+        font-size: 17px;
+      }
+
+      .hero-summary {
+        display: grid;
+        gap: 14px;
+      }
+
+      .summary-block {
+        padding: 18px 18px 16px;
+        border-radius: var(--radius-md);
+        background:
+          linear-gradient(180deg, color-mix(in oklch, white 66%, transparent), transparent),
+          var(--paper-surface);
+        border: 1px solid color-mix(in oklch, var(--rule) 92%, white);
+      }
+
+      .summary-block strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: var(--text-sm);
+        color: var(--ink-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .summary-block span {
+        display: block;
+        font-size: var(--text-lg);
+        font-weight: 600;
+      }
+
+      .meta-strip,
+      .kpi-strip,
+      .filters,
+      .opportunity-grid,
+      .appendix-grid,
+      .distribution-grid,
+      .price-grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .meta-strip {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-top: 24px;
+      }
+
+      .meta-cell,
+      .kpi-card {
+        padding: 18px;
+        border-radius: var(--radius-md);
+        background: color-mix(in oklch, white 72%, transparent);
+        border: 1px solid color-mix(in oklch, var(--rule) 92%, white);
+      }
+
+      .meta-cell strong,
+      .kpi-card strong,
+      .legend strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: var(--text-xs);
+        color: var(--ink-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .meta-cell span {
+        font-size: 17px;
+        font-weight: 600;
+      }
+
+      .section {
+        margin-top: 28px;
+        padding: 28px;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 20px;
+      }
+
+      .section-head p {
+        margin: 8px 0 0;
+        color: var(--ink-secondary);
+      }
+
+      .section-nav {
+        position: sticky;
+        top: 12px;
+        z-index: 10;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 12px;
+        margin: 18px 0 0;
+        border-radius: var(--radius-md);
+        background: color-mix(in oklch, white 76%, var(--paper-bg));
+        border: 1px solid color-mix(in oklch, var(--rule) 92%, white);
+        box-shadow: var(--shadow-sheet);
+      }
+
+      .section-nav a,
+      .filter-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in oklch, var(--rule-strong) 50%, white);
+        background: color-mix(in oklch, white 84%, transparent);
+        color: var(--ink-secondary);
+        font-size: var(--text-sm);
+        cursor: pointer;
+      }
+
+      .section-nav a:hover,
+      .filter-button:hover {
+        text-decoration: none;
+        background: var(--accent-faint);
+        color: var(--ink-primary);
+      }
+
+      .filter-button.active {
+        background: var(--accent-soft);
+        border-color: color-mix(in oklch, var(--accent) 32%, var(--rule));
+        color: var(--ink-primary);
+      }
+
+      .kpi-strip {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .kpi-card em {
+        color: var(--ink-secondary);
+        font-size: var(--text-sm);
+        font-style: normal;
+      }
+
+      .kpi-score {
+        margin-top: 8px;
+        font-family: var(--ff-display);
+        font-size: 32px;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 18px;
+        align-items: center;
+        margin-top: 12px;
+        color: var(--ink-secondary);
+        font-size: var(--text-sm);
+      }
+
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+      }
+
+      .chart-shell {
+        padding: 18px;
+        border-radius: var(--radius-md);
+        border: 1px solid color-mix(in oklch, var(--rule) 92%, white);
+        background: linear-gradient(180deg, color-mix(in oklch, white 60%, transparent), transparent);
+      }
+
+      svg text {
+        font-family: var(--ff-body);
+      }
+
+      #market-map {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .map-grid-line {
+        stroke: var(--rule);
+        stroke-width: 1;
+      }
+
+      .map-axis-line {
+        stroke: var(--rule-strong);
+        stroke-width: 2;
+      }
+
+      .map-axis-label {
+        fill: var(--ink-secondary);
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .map-leader {
+        stroke: color-mix(in oklch, var(--ink-muted) 50%, white);
+        stroke-width: 1.25;
+        opacity: 0.78;
+      }
+
+      .map-core {
+        opacity: 0.94;
+      }
+
+      .map-halo {
+        opacity: 0.12;
+      }
+
+      .map-label {
+        fill: var(--ink-primary);
+        font-size: 14px;
+        font-weight: 650;
+        paint-order: stroke fill;
+        stroke: color-mix(in oklch, white 96%, var(--paper-bg));
+        stroke-width: 6px;
+        stroke-linejoin: round;
+      }
+
+      .map-label.subtle {
+        font-size: 13px;
+      }
+
+      .map-label.jotluck {
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .table-wrap {
+        overflow: auto;
+        border-radius: var(--radius-md);
+        border: 1px solid color-mix(in oklch, var(--rule) 92%, white);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: var(--text-sm);
+      }
+
+      th,
+      td {
+        padding: 12px 12px;
+        text-align: left;
+        border-bottom: 1px solid color-mix(in oklch, var(--rule) 88%, white);
+        vertical-align: top;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        background: color-mix(in oklch, white 88%, var(--paper-bg));
+        color: var(--ink-secondary);
+        font-size: var(--text-xs);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+      }
+
+      tbody tr:hover {
+        background: color-mix(in oklch, var(--accent-faint) 65%, white);
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        white-space: nowrap;
+        border: 1px solid color-mix(in oklch, var(--rule-strong) 45%, white);
+      }
+
+      .chip.global {
+        background: color-mix(in oklch, var(--accent-soft) 32%, white);
+      }
+
+      .chip.china {
+        background: color-mix(in oklch, var(--warning-soft) 48%, white);
+      }
+
+      .chip.opensource {
+        background: color-mix(in oklch, var(--success-soft) 56%, white);
+      }
+
+      .chip.closed {
+        background: color-mix(in oklch, var(--danger-soft) 44%, white);
+      }
+
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .bar-track {
+        flex: 1;
+        height: 9px;
+        border-radius: 999px;
+        background: color-mix(in oklch, var(--rule) 72%, white);
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--accent), color-mix(in oklch, var(--accent) 55%, var(--warning)));
+      }
+
+      .bar-label {
+        min-width: 38px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        color: var(--ink-secondary);
+      }
+
+      .price-grid {
+        grid-template-columns: 1.2fr 1fr;
+      }
+
+      .distribution-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .lane {
+        padding: 16px 18px;
+        border-radius: var(--radius-md);
+        border: 1px solid color-mix(in oklch, var(--rule) 92%, white);
+        background: color-mix(in oklch, white 78%, transparent);
+      }
+
+      .lane h3 {
+        margin-bottom: 10px;
+        font-size: 22px;
+      }
+
+      .lane ul,
+      .opportunity-card ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .lane li,
+      .opportunity-card li {
+        margin: 8px 0;
+        color: var(--ink-secondary);
+      }
+
+      .heatmap-note {
+        margin-top: 14px;
+        color: var(--ink-secondary);
+        font-size: var(--text-sm);
+      }
+
+      .heatmap-cell {
+        min-width: 118px;
+      }
+
+      .score-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        color: white;
+      }
+
+      .score-1,
+      .score-2 {
+        background: var(--danger);
+      }
+
+      .score-3 {
+        background: var(--warning);
+      }
+
+      .score-4,
+      .score-5 {
+        background: var(--success);
+      }
+
+      .opportunity-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .opportunity-card {
+        padding: 20px;
+        border-radius: var(--radius-md);
+        border: 1px solid color-mix(in oklch, var(--rule) 92%, white);
+        background:
+          linear-gradient(180deg, color-mix(in oklch, white 68%, transparent), transparent),
+          var(--paper-surface);
+      }
+
+      .opportunity-card h3 {
+        font-size: 24px;
+        margin-bottom: 10px;
+      }
+
+      .opportunity-card p {
+        margin: 0 0 12px;
+        color: var(--ink-secondary);
+      }
+
+      .appendix-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .appendix-card {
+        padding: 20px;
+        border-radius: var(--radius-md);
+        border: 1px solid color-mix(in oklch, var(--rule) 92%, white);
+        background: color-mix(in oklch, white 80%, transparent);
+      }
+
+      .appendix-card header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .appendix-card h3 {
+        font-size: 24px;
+      }
+
+      .muted {
+        color: var(--ink-secondary);
+      }
+
+      .small {
+        font-size: var(--text-sm);
+      }
+
+      .mono {
+        font-family: var(--ff-mono);
+      }
+
+      .source-list {
+        display: grid;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .source-list a {
+        font-size: var(--text-sm);
+      }
+
+      .method-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+
+      .method-card {
+        padding: 18px;
+        border-radius: var(--radius-md);
+        border: 1px solid color-mix(in oklch, var(--rule) 92%, white);
+        background: color-mix(in oklch, white 80%, transparent);
+      }
+
+      .method-card ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .method-card li {
+        margin: 8px 0;
+        color: var(--ink-secondary);
+      }
+
+      .footer {
+        margin-top: 24px;
+        padding: 18px 2px 0;
+        color: var(--ink-muted);
+        font-size: var(--text-sm);
+      }
+
+      @media (max-width: 1180px) {
+        .hero-grid,
+        .price-grid,
+        .distribution-grid,
+        .opportunity-grid,
+        .appendix-grid,
+        .method-grid,
+        .kpi-strip,
+        .meta-strip {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .page {
+          width: min(100vw - 24px, 1480px);
+          padding-top: 16px;
+        }
+
+        .hero,
+        .section {
+          padding: 20px;
+        }
+
+        .section-head {
+          display: block;
+        }
+
+        .section-nav {
+          top: 6px;
+        }
+
+        th,
+        td {
+          padding: 10px;
+        }
+
+        .map-axis-label,
+        .map-label {
+          font-size: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero card" id="top">
+        <div class="eyebrow">JotLuck 竞品调研 / 发行策略底稿 / 2026-07-09</div>
+        <div class="hero-grid">
+          <div>
+            <h1>JotLuck 的真正赛道，不是“所有笔记软件”，而是可信的本地 Markdown 工具。</h1>
+            <p>
+              这份报告把全球与中文语境下的 12 个主竞品放到同一张图里比较：谁靠云，谁靠买断，谁靠生态，谁靠品牌，
+              以及 JotLuck 在 Windows 首发、本地文件、轻量知识写作、官方可信发行这条线上还能打出什么差异。
+            </p>
+          </div>
+          <div class="hero-summary">
+            <div class="summary-block">
+              <strong>当前最像谁</strong>
+              <span>Typora / MWeb 的 Markdown 写作体验 + Obsidian / 思源 的本地优先叙事</span>
+            </div>
+            <div class="summary-block">
+              <strong>最不该像谁</strong>
+              <span>Effie / Ulysses / Bear 这类把账号、云同步或订阅闭环做成主路径的产品</span>
+            </div>
+            <div class="summary-block">
+              <strong>最可打空位</strong>
+              <span>Windows-first、纯文本文件、离线优先、官方可信安装包的轻量知识写作工具</span>
+            </div>
+          </div>
+        </div>
+        <div class="meta-strip">
+          <div class="meta-cell">
+            <strong>研究对象</strong>
+            <span>12 家主竞品 + 1 个生态基准</span>
+          </div>
+          <div class="meta-cell">
+            <strong>研究口径</strong>
+            <span>全球 + 中国，官方来源优先</span>
+          </div>
+          <div class="meta-cell">
+            <strong>项目基线</strong>
+            <span class="mono">JotLuck / v0.15.0-rc.1</span>
+          </div>
+          <div class="meta-cell">
+            <strong>交付目的</strong>
+            <span>产品取舍、发行判断、商业化设计</span>
+          </div>
+        </div>
+      </header>
+
+      <nav class="section-nav">
+        <a href="#map">市场地图</a>
+        <a href="#scoreboard">竞品总榜</a>
+        <a href="#pricing">价格与分发</a>
+        <a href="#capabilities">能力边界</a>
+        <a href="#opportunity">JotLuck 机会区</a>
+        <a href="#appendix">附录</a>
+        <a href="#methodology">口径与方法</a>
+      </nav>
+
+      <section class="section card" id="map">
+        <div class="section-head">
+          <div>
+            <h2>市场地图</h2>
+            <p>横轴越往右越本地优先，纵轴越往上越偏知识管理 / PKM。JotLuck 目标空位在右下和右中之间。</p>
+          </div>
+        </div>
+        <div class="kpi-strip" id="map-kpis"></div>
+        <div class="chart-shell">
+          <svg id="market-map" viewBox="0 0 1120 520" role="img" aria-label="竞品市场地图"></svg>
+          <div class="legend">
+            <div class="legend-item"><span class="swatch" style="background: var(--accent)"></span>全球主竞品</div>
+            <div class="legend-item"><span class="swatch" style="background: var(--warning)"></span>中国 / 中文语境重点竞品</div>
+            <div class="legend-item"><span class="swatch" style="background: var(--danger)"></span>JotLuck 参考定位</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section card" id="scoreboard">
+        <div class="section-head">
+          <div>
+            <h2>竞品总榜</h2>
+            <p>总榜按“研究关注度”排序，综合考虑定位匹配度、商业参考价值、发行威胁与可差异化空间。</p>
+          </div>
+        </div>
+        <div class="filters" id="filters"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>产品</th>
+                <th>区域</th>
+                <th>类型</th>
+                <th>开源</th>
+                <th>定价模式</th>
+                <th>定位匹配</th>
+                <th>商业参考</th>
+                <th>发行威胁</th>
+                <th>差异空间</th>
+                <th>研究关注度</th>
+              </tr>
+            </thead>
+            <tbody id="scoreboard-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section card" id="pricing">
+        <div class="section-head">
+          <div>
+            <h2>价格与分发</h2>
+            <p>大多数成熟玩家都不靠“锁文件格式”收费，而是靠买断、同步、托管、账号闭环或生态附加值收费。</p>
+          </div>
+        </div>
+        <div class="price-grid">
+          <div class="chart-shell">
+            <h3>价格模型分布</h3>
+            <div id="pricing-bars"></div>
+          </div>
+          <div class="chart-shell">
+            <h3>JotLuck 可直接借鉴的 3 条路径</h3>
+            <div id="pricing-lessons" class="lane"></div>
+          </div>
+        </div>
+        <div class="distribution-grid" id="distribution-grid"></div>
+      </section>
+
+      <section class="section card" id="capabilities">
+        <div class="section-head">
+          <div>
+            <h2>能力边界对比</h2>
+            <p>这里只比最影响 JotLuck 决策的五件事：Markdown 原生度、本地文件可见性、同步依赖、AI 联网强度、主题 / 插件开放度。</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>产品</th>
+                <th class="heatmap-cell">Markdown 原生度</th>
+                <th class="heatmap-cell">本地文件可见性</th>
+                <th class="heatmap-cell">同步 / 协作依赖</th>
+                <th class="heatmap-cell">AI 联网强度</th>
+                <th class="heatmap-cell">主题 / 插件开放度</th>
+                <th>说明</th>
+              </tr>
+            </thead>
+            <tbody id="capability-body"></tbody>
+          </table>
+        </div>
+        <p class="heatmap-note">
+          注：`0-5` 为相对比较分，不是好坏分。比如“同步 / 协作依赖”分数越高，说明产品越依赖云账号或共享服务来完成完整体验。
+        </p>
+      </section>
+
+      <section class="section card" id="opportunity">
+        <div class="section-head">
+          <div>
+            <h2>JotLuck 机会区</h2>
+            <p>这一部分只输出行动结论，不再重复竞品描述。</p>
+          </div>
+        </div>
+        <div class="opportunity-grid" id="opportunity-grid"></div>
+      </section>
+
+      <section class="section card" id="appendix">
+        <div class="section-head">
+          <div>
+            <h2>附录：竞品卡片明细</h2>
+            <p>每张卡片都包含定价摘要、目标用户、关键边界和官方来源链接，便于继续细化成商业计划或官网对比页。</p>
+          </div>
+        </div>
+        <div class="appendix-grid" id="appendix-grid"></div>
+        <div class="section-head" style="margin-top: 28px">
+          <div>
+            <h2>生态基准：VS Code Markdown / 扩展生态</h2>
+            <p>它不是 JotLuck 的直接收费对手，但它决定了高级 Markdown 用户的默认入口和插件心智。</p>
+          </div>
+        </div>
+        <div class="appendix-card" id="benchmark-card"></div>
+      </section>
+
+      <section class="section card" id="methodology">
+        <div class="section-head">
+          <div>
+            <h2>评分口径与方法</h2>
+            <p>事实与分析分开：事实来自官方页，评分来自面向 JotLuck 的相对判断。</p>
+          </div>
+        </div>
+        <div class="method-grid">
+          <div class="method-card">
+            <h3>9 个基础维度</h3>
+            <ul>
+              <li>定位与目标用户</li>
+              <li>收费模式与定价</li>
+              <li>分发与触达渠道</li>
+              <li>平台与发行形态</li>
+              <li>数据模型与互通边界</li>
+              <li>AI 与联网边界</li>
+              <li>团队 / 协作能力</li>
+              <li>品牌叙事与社区资产</li>
+              <li>发布信任链</li>
+            </ul>
+          </div>
+          <div class="method-card">
+            <h3>4 个汇总结论分</h3>
+            <ul>
+              <li><strong>定位匹配度</strong>：和 JotLuck 的直接碰撞程度</li>
+              <li><strong>商业参考价值</strong>：对 JotLuck 的收费与发行策略有多可借鉴</li>
+              <li><strong>发行威胁等级</strong>：在下载、品牌、生态、平台覆盖上有多强</li>
+              <li><strong>差异空间</strong>：JotLuck 还能否明确拉开距离</li>
+            </ul>
+          </div>
+        </div>
+        <div class="method-grid" style="margin-top: 18px">
+          <div class="method-card">
+            <h3>来源使用规则</h3>
+            <ul>
+              <li><strong>core</strong>：官网首页、定价页、下载页、隐私 / 条款页</li>
+              <li><strong>supplement</strong>：官方博客、GitHub、App Store 页面</li>
+              <li><strong>avoid</strong>：第三方媒体、Reddit、非官方论坛</li>
+            </ul>
+          </div>
+          <div class="method-card">
+            <h3>使用提示</h3>
+            <ul>
+              <li>价格、版本、政策会变化，必须结合时间点阅读</li>
+              <li>本报告不写虚构市场份额、虚构用户数或融资故事</li>
+              <li>适合作为后续官网对比页、发行页和商业计划书的事实底稿</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <div class="footer">
+        报告生成口径：`2026-07-09`。项目品牌以 `JotLuck` 为准。更多来源见同目录的
+        <a href="./sources.md">sources.md</a>。
+      </div>
+    </div>
+
+    <script>
+      const reportMeta = {
+        project: "JotLuck",
+        version: "v0.15.0-rc.1",
+        updatedAt: "2026-07-09",
+      };
+
+      const competitors = [
+        {
+          id: "obsidian",
+          name: "Obsidian",
+          region: "global",
+          category: "pkm",
+          url: "https://obsidian.md/",
+          openSource: false,
+          platforms: ["Windows", "macOS", "Linux", "iOS", "Android"],
+          pricingModel: "免费核心 + 付费服务",
+          pricingSummary: "核心应用免费；Sync $4/月起，Publish $8/月起，另有 Catalyst / Commercial 支持型许可。",
+          targetUsers: "开发者、研究者、知识工作者、数字花园作者",
+          localFirstLevel: 5,
+          markdownNative: 5,
+          fileVisibility: 5,
+          syncDependency: 1,
+          aiOnlineLevel: 0,
+          themePluginOpenness: 5,
+          knowledgeLevel: 4.6,
+          aiBoundary: "官方主价值仍是本地 Markdown 与插件生态，联网主要落在 Sync / Publish 服务层。",
+          teamCapability: "通过 Sync shared vaults 与 Publish 支撑轻协作，但不是项目协作主战场。",
+          distribution: "官网直下 + 移动商店，插件与主题生态成熟。",
+          distributionChannels: ["官网", "直接下载", "移动商店", "云服务"],
+          communitySignal: "插件与主题生态强，帮助站与论坛成熟。",
+          trustSignal: "官网、帮助站、许可与定价边界清晰，用户信任链完整。",
+          sources: [
+            "https://obsidian.md/",
+            "https://obsidian.md/pricing",
+            "https://obsidian.md/license",
+            "https://obsidian.md/sync",
+            "https://publish.obsidian.md/",
+          ],
+          notes: "最像“本地文件 + 生态层收费”的参考样板。",
+          scores: {
+            positioning: 5,
+            pricing: 5,
+            distribution: 5,
+            platforms: 5,
+            dataModel: 5,
+            aiBoundary: 4,
+            team: 3,
+            brand: 5,
+            trust: 5,
+            fit: 5,
+            business: 5,
+            threat: 5,
+            diff: 2,
+          },
+        },
+        {
+          id: "logseq",
+          name: "Logseq",
+          region: "global",
+          category: "pkm",
+          url: "https://logseq.com/",
+          openSource: true,
+          platforms: ["Windows", "macOS", "Linux", "iOS", "Android"],
+          pricingModel: "开源免费 + 托管订阅服务",
+          pricingSummary: "官方首页强调开源和个人免费；条款显示存在 Subscription Services，但公开主页不强调具体价目。",
+          targetUsers: "学习者、研究者、开发者、项目管理者",
+          localFirstLevel: 5,
+          markdownNative: 4,
+          fileVisibility: 4,
+          syncDependency: 1,
+          aiOnlineLevel: 0,
+          themePluginOpenness: 4,
+          knowledgeLevel: 5,
+          aiBoundary: "官方主轴仍是本地知识图谱，联网服务并非首页主叙事。",
+          teamCapability: "路线中包含协作与白板，但当前核心体验仍偏个人知识图谱。",
+          distribution: "官网直下为主，开源与社区内容比商店更重要。",
+          distributionChannels: ["官网", "直接下载", "开源仓库"],
+          communitySignal: "开源社区强，文档与论坛活跃。",
+          trustSignal: "隐私优先、本地数据、开源许可是主要信任来源。",
+          sources: [
+            "https://logseq.com/",
+            "https://logseq.com/downloads",
+            "https://logseq.com/terms",
+            "https://docs.logseq.com/",
+            "https://blog.logseq.com/about/",
+          ],
+          notes: "比 Obsidian 更偏大纲 / 图谱思维，不是轻量写作器。",
+          scores: {
+            positioning: 5,
+            pricing: 3,
+            distribution: 3,
+            platforms: 5,
+            dataModel: 4,
+            aiBoundary: 4,
+            team: 3,
+            brand: 4,
+            trust: 4,
+            fit: 4,
+            business: 3,
+            threat: 4,
+            diff: 3,
+          },
+        },
+        {
+          id: "joplin",
+          name: "Joplin",
+          region: "global",
+          category: "pkm",
+          url: "https://joplinapp.org/",
+          openSource: true,
+          platforms: ["Windows", "macOS", "Linux", "iOS", "Android", "Web App"],
+          pricingModel: "免费核心 + 云订阅",
+          pricingSummary: "桌面与移动端免费；Joplin Cloud Pro 约 €4.79/月（年付）起，另有更高容量和团队方案。",
+          targetUsers: "重视开源、同步、附件与多端访问的通用笔记用户",
+          localFirstLevel: 4,
+          markdownNative: 3,
+          fileVisibility: 2,
+          syncDependency: 2,
+          aiOnlineLevel: 2,
+          themePluginOpenness: 4,
+          knowledgeLevel: 3.7,
+          aiBoundary: "官方计划页已出现 Joplin Cloud AI (beta)，AI 和云服务绑定更紧。",
+          teamCapability: "官方云提供分享、协作、Team 和 Web App。",
+          distribution: "官网、GitHub、应用商店和云服务入口并行。",
+          distributionChannels: ["官网", "直接下载", "移动商店", "开源仓库", "云服务"],
+          communitySignal: "开源社区稳定，插件生态与论坛均较成熟。",
+          trustSignal: "OSS + 云服务边界清晰，合规与定价说明完整。",
+          sources: [
+            "https://joplinapp.org/",
+            "https://joplinapp.org/plans/",
+            "https://joplinapp.org/help/apps/use_cases/personal_organisation/",
+          ],
+          notes: "适合观察‘开源核心 + 官方云增值’的商业边界，但文件模型不如 JotLuck 纯粹。",
+          scores: {
+            positioning: 4,
+            pricing: 4,
+            distribution: 5,
+            platforms: 5,
+            dataModel: 2,
+            aiBoundary: 3,
+            team: 4,
+            brand: 4,
+            trust: 5,
+            fit: 3,
+            business: 4,
+            threat: 3,
+            diff: 4,
+          },
+        },
+        {
+          id: "zettlr",
+          name: "Zettlr",
+          region: "global",
+          category: "writing",
+          url: "https://www.zettlr.com/",
+          openSource: true,
+          platforms: ["Windows", "macOS", "Linux"],
+          pricingModel: "免费开源 / 捐赠支持",
+          pricingSummary: "FOSS，免费下载，无强制云服务，主要通过赞助支持。",
+          targetUsers: "研究者、学术作者、记者、长文写作者",
+          localFirstLevel: 5,
+          markdownNative: 5,
+          fileVisibility: 5,
+          syncDependency: 0,
+          aiOnlineLevel: 0,
+          themePluginOpenness: 2,
+          knowledgeLevel: 2.8,
+          aiBoundary: "官方叙事仍是写作与出版工作台，未把联网 AI 作为核心主卖点。",
+          teamCapability: "基本无团队协作主张，更偏个人工作台。",
+          distribution: "官网直下 + 包管理器，GitHub / Docs 配套齐全。",
+          distributionChannels: ["官网", "直接下载", "开源仓库"],
+          communitySignal: "社区较稳，但品牌外溢主要在学术写作圈。",
+          trustSignal: "无强制云、无遥测、可禁用更新检查，信任叙事很强。",
+          sources: [
+            "https://www.zettlr.com/",
+            "https://www.zettlr.com/download",
+            "https://docs.zettlr.com/en/",
+            "https://www.zettlr.com/supporters",
+          ],
+          notes: "它证明‘不靠云也能成立’，但商业扩张天花板更低。",
+          scores: {
+            positioning: 4,
+            pricing: 3,
+            distribution: 3,
+            platforms: 3,
+            dataModel: 5,
+            aiBoundary: 5,
+            team: 1,
+            brand: 3,
+            trust: 5,
+            fit: 4,
+            business: 3,
+            threat: 2,
+            diff: 4,
+          },
+        },
+        {
+          id: "typora",
+          name: "Typora",
+          region: "global",
+          category: "writing",
+          url: "https://typora.io/",
+          openSource: false,
+          platforms: ["Windows", "macOS", "Linux"],
+          pricingModel: "一次性买断",
+          pricingSummary: "官方商店显示 $14.99（未税）一次性买断，15 天试用，1 个用户最多激活 3 台设备。",
+          targetUsers: "想要低摩擦、所见即所得 Markdown 写作体验的个人用户",
+          localFirstLevel: 5,
+          markdownNative: 5,
+          fileVisibility: 5,
+          syncDependency: 0,
+          aiOnlineLevel: 0,
+          themePluginOpenness: 2,
+          knowledgeLevel: 1.2,
+          aiBoundary: "几乎不以 AI 或联网能力销售自己，主打本地文件编辑体验。",
+          teamCapability: "无团队协作主张，组织采购只能靠多份用户许可。",
+          distribution: "官网商店 + 直接下载，Linux 还提供仓库安装方式。",
+          distributionChannels: ["官网", "直接下载"],
+          communitySignal: "主题社区稳，但生态以样式而非插件为主。",
+          trustSignal: "文件型编辑器、授权规则、试用和退款口径都非常清楚。",
+          sources: [
+            "https://typora.io/",
+            "https://store.typora.io/",
+            "https://support.typora.io/purchase/",
+          ],
+          notes: "JotLuck 最直接的‘买断型轻写作工具’参照物。",
+          scores: {
+            positioning: 5,
+            pricing: 5,
+            distribution: 4,
+            platforms: 3,
+            dataModel: 5,
+            aiBoundary: 5,
+            team: 1,
+            brand: 4,
+            trust: 5,
+            fit: 5,
+            business: 5,
+            threat: 5,
+            diff: 3,
+          },
+        },
+        {
+          id: "ia-writer",
+          name: "iA Writer",
+          region: "global",
+          category: "writing",
+          url: "https://ia.net/writer",
+          openSource: false,
+          platforms: ["macOS", "Windows", "iPhone", "iPad"],
+          pricingModel: "按平台一次性买断",
+          pricingSummary: "Windows $29.99，Mac $49.99，iPhone/iPad $49.99，提供教育折扣和批量采购。",
+          targetUsers: "重视专注写作、长文写作与苹果 / 跨平台精致体验的作者",
+          localFirstLevel: 4,
+          markdownNative: 4,
+          fileVisibility: 4,
+          syncDependency: 1,
+          aiOnlineLevel: 0,
+          themePluginOpenness: 1,
+          knowledgeLevel: 1,
+          aiBoundary: "官方价格与产品叙事都没有把 AI 作为主轴。",
+          teamCapability: "通过教育折扣和 volume purchases 进入组织采购，但不主打协作。",
+          distribution: "官网直售 + App Store 组合，采购路径清晰。",
+          distributionChannels: ["官网", "直接下载", "移动商店"],
+          communitySignal: "品牌认知高，社区不以插件生态见长。",
+          trustSignal: "定价、折扣、平台边界和批量采购路径都很透明。",
+          sources: [
+            "https://ia.net/writer",
+            "https://ia.net/writer/pricing",
+          ],
+          notes: "说明‘高端写作器’也可以不靠云订阅，但品牌要求极高。",
+          scores: {
+            positioning: 4,
+            pricing: 4,
+            distribution: 4,
+            platforms: 3,
+            dataModel: 4,
+            aiBoundary: 5,
+            team: 2,
+            brand: 5,
+            trust: 5,
+            fit: 4,
+            business: 4,
+            threat: 3,
+            diff: 4,
+          },
+        },
+        {
+          id: "ulysses",
+          name: "Ulysses",
+          region: "global",
+          category: "writing",
+          url: "https://ulysses.app/",
+          openSource: false,
+          platforms: ["macOS", "iPhone", "iPad"],
+          pricingModel: "订阅制",
+          pricingSummary: "$39.99/年或 $5.99/月，含 iCloud 同步，另有学生价和组织授权。",
+          targetUsers: "苹果生态内的专业写作者和内容团队",
+          localFirstLevel: 2,
+          markdownNative: 3,
+          fileVisibility: 2,
+          syncDependency: 4,
+          aiOnlineLevel: 0,
+          themePluginOpenness: 1,
+          knowledgeLevel: 1.2,
+          aiBoundary: "价值主张集中在跨苹果设备的订阅工作台，而非 AI。",
+          teamCapability: "有组织授权入口，但仍是写作工具而不是协作知识库。",
+          distribution: "官网 + App Store，依赖苹果生态和 iCloud 闭环。",
+          distributionChannels: ["官网", "移动商店", "云服务"],
+          communitySignal: "品牌形象稳定，但生态开放度弱。",
+          trustSignal: "订阅边界清晰，不过平台封闭性强。",
+          sources: [
+            "https://ulysses.app/",
+            "https://ulysses.app/pricing/",
+          ],
+          notes: "不适合 JotLuck 去复制它的云同步与平台闭环策略。",
+          scores: {
+            positioning: 3,
+            pricing: 4,
+            distribution: 3,
+            platforms: 1,
+            dataModel: 2,
+            aiBoundary: 5,
+            team: 2,
+            brand: 4,
+            trust: 4,
+            fit: 2,
+            business: 4,
+            threat: 2,
+            diff: 4,
+          },
+        },
+        {
+          id: "bear",
+          name: "Bear",
+          region: "global",
+          category: "notes",
+          url: "https://bear.app/",
+          openSource: false,
+          platforms: ["macOS", "iPhone", "iPad", "Bear Web beta"],
+          pricingModel: "订阅制",
+          pricingSummary: "Bear Pro $2.99/月或 $29.99/年；同步依赖 Pro，Bear Web 目前为公测补足入口。",
+          targetUsers: "重视简洁、设计感和苹果生态一致性的个人记笔记用户",
+          localFirstLevel: 2,
+          markdownNative: 4,
+          fileVisibility: 2,
+          syncDependency: 4,
+          aiOnlineLevel: 0,
+          themePluginOpenness: 1,
+          knowledgeLevel: 1.6,
+          aiBoundary: "AI 不是核心叙事，主卖点是简洁写作和 Apple 生态一致体验。",
+          teamCapability: "不主打团队协作，Web 端仍是伴生入口而不是主阵地。",
+          distribution: "App Store + 官网 + Web beta，强依赖苹果账户与 iCloud。",
+          distributionChannels: ["官网", "移动商店", "云服务", "Web beta"],
+          communitySignal: "品牌和社区忠诚度强，但开放生态很弱。",
+          trustSignal: "产品边界和 Pro 功能清楚，但跨平台能力受 Apple 限制。",
+          sources: [
+            "https://bear.app/",
+            "https://bear.app/faq/features-and-price-of-bear-pro/",
+            "https://bear.app/faq/what-about-bear-for-web-android-windows/",
+            "https://blog.bear.app/2025/07/bear-web-public-beta-you-are-invited/",
+          ],
+          notes: "适合学习它的品牌与文案，不适合学习它的平台封闭路径。",
+          scores: {
+            positioning: 4,
+            pricing: 4,
+            distribution: 3,
+            platforms: 2,
+            dataModel: 2,
+            aiBoundary: 5,
+            team: 1,
+            brand: 5,
+            trust: 4,
+            fit: 2,
+            business: 4,
+            threat: 3,
+            diff: 4,
+          },
+        },
+        {
+          id: "upnote",
+          name: "UpNote",
+          region: "global",
+          category: "notes",
+          url: "https://getupnote.com/",
+          openSource: false,
+          platforms: ["Windows", "macOS", "Linux", "iOS", "Android"],
+          pricingModel: "免费 + 订阅 / 终身版",
+          pricingSummary: "Premium $1.99/月或 $39.99 终身；免费版最多 50 notes，但基础同步与组织能力可用。",
+          targetUsers: "追求简洁跨平台、价格低摩擦、比 Evernote 更轻的通用笔记用户",
+          localFirstLevel: 3,
+          markdownNative: 3,
+          fileVisibility: 2,
+          syncDependency: 4,
+          aiOnlineLevel: 0,
+          themePluginOpenness: 1,
+          knowledgeLevel: 2.3,
+          aiBoundary: "不靠 AI 销售自己，主要卖点是跨平台与低价 Premium。",
+          teamCapability: "不强调团队协作，但账号和无限设备同步路径清楚。",
+          distribution: "官网、应用商店、Windows installer 并行，跨平台铺得很全。",
+          distributionChannels: ["官网", "直接下载", "移动商店", "云服务"],
+          communitySignal: "两人团队叙事明确，帮助中心结构完整。",
+          trustSignal: "免费 / Premium 边界明确，平台覆盖与隐私页透明。",
+          sources: [
+            "https://getupnote.com/",
+            "https://help.getupnote.com/resources/upnote-premium/premium-faqs",
+            "https://help.getupnote.com/get-started/installation",
+            "https://getupnote.com/privacy.html",
+            "https://help.getupnote.com/resources/frequently-asked-questions",
+          ],
+          notes: "它是‘小团队也能把跨平台定价做得很顺’的直接样板。",
+          scores: {
+            positioning: 4,
+            pricing: 5,
+            distribution: 5,
+            platforms: 5,
+            dataModel: 2,
+            aiBoundary: 5,
+            team: 2,
+            brand: 3,
+            trust: 4,
+            fit: 3,
+            business: 5,
+            threat: 4,
+            diff: 3,
+          },
+        },
+        {
+          id: "siyuan",
+          name: "思源笔记",
+          region: "china",
+          category: "pkm",
+          url: "https://b3log.org/siyuan/",
+          openSource: true,
+          platforms: ["Windows", "macOS", "Linux", "iOS", "Android", "HarmonyOS"],
+          pricingModel: "免费核心 + 会员订阅",
+          pricingSummary: "基础功能免费；官网定价页显示会员含官方同步与增强能力，续费口径清晰。",
+          targetUsers: "中文语境下重视本地优先、双向链接、块级编辑和 PKM 的知识工作者",
+          localFirstLevel: 5,
+          markdownNative: 5,
+          fileVisibility: 3,
+          syncDependency: 2,
+          aiOnlineLevel: 2,
+          themePluginOpenness: 4,
+          knowledgeLevel: 4.7,
+          aiBoundary: "AI 为增强模块，不是主数据模型，但已经进入产品能力范围。",
+          teamCapability: "更偏个人 PKM，但社区、插件与同步方案较丰富。",
+          distribution: "官网、GitHub、应用商店与 Docker 等部署方式并行。",
+          distributionChannels: ["官网", "直接下载", "移动商店", "开源仓库", "云服务"],
+          communitySignal: "中文社区和 GitHub 信号都很强。",
+          trustSignal: "隐私、离线、E2EE 同步和用户权利说明较完整。",
+          sources: [
+            "https://b3log.org/siyuan/",
+            "https://b3log.org/siyuan/pricing.html",
+            "https://b3log.org/siyuan/download.html",
+            "https://b3log.org/siyuan/privacy.html",
+            "https://github.com/siyuan-note/siyuan",
+          ],
+          notes: "中文市场里最强的本地 PKM 参照系之一，但它的复杂度远高于 JotLuck。",
+          scores: {
+            positioning: 5,
+            pricing: 4,
+            distribution: 5,
+            platforms: 5,
+            dataModel: 4,
+            aiBoundary: 3,
+            team: 3,
+            brand: 4,
+            trust: 5,
+            fit: 4,
+            business: 4,
+            threat: 4,
+            diff: 3,
+          },
+        },
+        {
+          id: "mweb",
+          name: "MWeb",
+          region: "china",
+          category: "writing",
+          url: "https://zh.mweb.im/",
+          openSource: false,
+          platforms: ["macOS", "iPhone", "iPad"],
+          pricingModel: "终身版 + 订阅并存",
+          pricingSummary: "中文官网可见终身版购买，英文首页展示 MWeb Pro Lifetime $34.99；文档库支持 iCloud 同步。",
+          targetUsers: "Markdown 写作者、个人知识整理者、静态博客与发布用户",
+          localFirstLevel: 5,
+          markdownNative: 5,
+          fileVisibility: 4,
+          syncDependency: 1,
+          aiOnlineLevel: 0,
+          themePluginOpenness: 3,
+          knowledgeLevel: 2.2,
+          aiBoundary: "核心卖点仍是 Markdown 编辑、文件夹模式、文档库和发布能力。",
+          teamCapability: "更像强个人工具，团队协作不是主战场。",
+          distribution: "官网、Mac App Store、官方商店和合作渠道并行。",
+          distributionChannels: ["官网", "直接下载", "移动商店"],
+          communitySignal: "中文内容生态与老用户认知稳定，但社区开放度一般。",
+          trustSignal: "授权设备数、退款、更新和购买渠道写得很清楚。",
+          sources: [
+            "https://zh.mweb.im/",
+            "https://zh.mweb.im/buy",
+            "https://www.mweb.im/terms",
+            "https://www.mweb.im/",
+          ],
+          notes: "在中文 Markdown 圈里，它比 Typora 更接近‘写作 + 发布 + 本地库’的一体化产品。",
+          scores: {
+            positioning: 5,
+            pricing: 4,
+            distribution: 3,
+            platforms: 1,
+            dataModel: 4,
+            aiBoundary: 5,
+            team: 1,
+            brand: 4,
+            trust: 4,
+            fit: 5,
+            business: 4,
+            threat: 4,
+            diff: 3,
+          },
+        },
+        {
+          id: "effie",
+          name: "Effie",
+          region: "china",
+          category: "notes",
+          url: "https://www.effie.pro/",
+          openSource: false,
+          platforms: ["Windows", "macOS", "iPhone", "iPad", "Android"],
+          pricingModel: "订阅制 + AI 增值",
+          pricingSummary: "官方 FAQ 与官方博客口径显示试用后订阅，Pro 与 Pro AI 分层明显，AI 为付费增强。",
+          targetUsers: "偏中文写作、构思拆解、导出归档和 AI 辅助创作用户",
+          localFirstLevel: 2,
+          markdownNative: 4,
+          fileVisibility: 2,
+          syncDependency: 5,
+          aiOnlineLevel: 5,
+          themePluginOpenness: 1,
+          knowledgeLevel: 2.5,
+          aiBoundary: "AI 是显著卖点和升级项，联网依赖显著强于 JotLuck 目标方向。",
+          teamCapability: "更偏商务化产品和账户体系，而不是本地文件工作流。",
+          distribution: "官网下载 + 官方账户订阅路径，多端覆盖完整。",
+          distributionChannels: ["官网", "直接下载", "移动商店", "云服务"],
+          communitySignal: "官方支持链路完整，但生态更品牌化而非社区化。",
+          trustSignal: "隐私、FAQ 和 About 页面齐全，但整体依赖订阅和联网服务。",
+          sources: [
+            "https://www.effie.pro/",
+            "https://www.effie.pro/features/",
+            "https://www.effie.pro/faq/",
+            "https://www.effie.pro/privacy/",
+            "https://www.effie.pro/blog/effie-the-ultimate-ai-powered-writing-app-for-developing-creativity-and-productivity/",
+          ],
+          notes: "它是 JotLuck 最不该跟进的那条路：AI 订阅工作台，而不是本地 Markdown 工具。",
+          scores: {
+            positioning: 3,
+            pricing: 4,
+            distribution: 4,
+            platforms: 5,
+            dataModel: 2,
+            aiBoundary: 1,
+            team: 2,
+            brand: 3,
+            trust: 3,
+            fit: 2,
+            business: 4,
+            threat: 3,
+            diff: 4,
+          },
+        },
+      ];
+
+      const benchmark = {
+        name: "VS Code Markdown / 扩展生态",
+        url: "https://code.visualstudio.com/docs/languages/markdown",
+        summary:
+          "VS Code 原生支持 Markdown 预览、目录、大纲和扩展 API；用户可以通过 Marketplace 把 Markdown 工作流拼成近似独立产品的体验。",
+        whyItMatters:
+          "它是高级 Markdown 用户最天然的免费入口，也是 JotLuck 的重要获客漏斗。JotLuck 不能把 VS Code 当直接收费对手，但必须把它当分发和心智竞争对手。",
+        notes: [
+          "内建 Markdown 预览，基础能力开箱即用",
+          "扩展 Marketplace + Markdown 扩展 API 让生态增长非常低摩擦",
+          "对 JotLuck 最有价值的角色是：免费获客入口，而不是主收入 SKU",
+        ],
+        sources: [
+          "https://code.visualstudio.com/docs/languages/markdown",
+          "https://code.visualstudio.com/api/extension-guides/markdown-extension",
+          "https://code.visualstudio.com/api/working-with-extensions/publishing-extension",
+          "https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one",
+        ],
+      };
+
+      const sourceRules = [
+        { sourceType: "官网首页", level: "core", why: "确认定位、主功能和最新叙事。" },
+        { sourceType: "定价页", level: "core", why: "确认价格、试用、授权和订阅边界。" },
+        { sourceType: "下载页", level: "core", why: "确认平台支持、分发形态和更新入口。" },
+        { sourceType: "隐私 / 条款页", level: "core", why: "确认数据边界、联网行为、退款和许可。" },
+        { sourceType: "官方博客", level: "supplement", why: "用于版本公告、路线图和策略语境。" },
+        { sourceType: "GitHub / App Store", level: "supplement", why: "用于交叉验证开源状态、商店分发和更新说明。" },
+      ];
+
+      const conclusions = [
+        {
+          title: "JotLuck 最该正面竞争的 3 类对手",
+          intro: "不要泛化成“对抗所有笔记软件”，而是只盯真正共享用户决策路径的对手。",
+          items: [
+            "Markdown 写作器：Typora、MWeb、iA Writer。这类用户最在意文件、编辑体验、买断和导出。",
+            "本地优先知识库：Obsidian、Logseq、思源笔记。这类用户最在意数据控制、链接、搜索和生态。",
+            "轻量跨平台笔记：UpNote、Bear。这类用户代表“漂亮、好上手、低价”的消费级预期。",
+          ],
+        },
+        {
+          title: "JotLuck 不该跟进的 3 类能力",
+          intro: "这些方向会把 JotLuck 从“本地 Markdown 工具”拉成另一种产品，反而削弱定位。",
+          items: [
+            "把账号、云同步、共享服务做成基础门槛。这会直接冲掉本地优先心智。",
+            "把 AI 工作流变成订阅主轴。Effie 式能力组合更像内容生产工作台，而不是文件型笔记工具。",
+            "追数据库、白板、思维导图、全能 workspace。复杂度和维护面会迅速超过 JotLuck 的现实产能。",
+          ],
+        },
+        {
+          title: "最可复制的 3 个商业 / 发行做法",
+          intro: "真正值得抄的不是功能，而是价格与信任链的组合。",
+          items: [
+            "Obsidian：免费核心 + 清晰可选服务，让用户先接受本地文件产品，再逐步为便利性付费。",
+            "Typora / MWeb：低摩擦买断 + 直接下载，适合独立工具在没有账号体系时快速成交。",
+            "Joplin / 思源：把同步、会员、云服务写成附加值，而不是把本地写作能力先锁住。",
+          ],
+        },
+        {
+          title: "未来 3 个月最值得验证的 3 条假设",
+          intro: "这些不是长期愿景，而是近期能检验是否值得继续投入的假设。",
+          items: [
+            "Windows Markdown 用户更愿意为“官方可信安装包 + 稳定本地体验”付费，而不是先为同步付费。",
+            "支持型付费（Supporter / 早鸟 / 优先支持）在开源前提下也能跑通，不必先做应用内支付。",
+            "VS Code 扩展可以作为高意图漏斗，把高级 Markdown 用户导向 JotLuck 桌面正式版。",
+          ],
+        },
+        {
+          title: "高风险项与缓解动作",
+          intro: "优势存在，但 moat 不会天然长出来。",
+          items: [
+            "风险：MIT + 无云服务导致壁垒弱。缓解：把壁垒放在官方发行版可信度、打磨、文档和支持上。",
+            "风险：Windows 先发限制全球心智。缓解：把 VS Code 漏斗与未来平台路线一起讲清楚，而不是假装全平台。",
+            "风险：赛道拥挤。缓解：坚持 Windows-first、本地优先、纯文本、安装包可信四点，不跟风做全能工作台。",
+          ],
+        },
+        {
+          title: "JotLuck 的建议发行位",
+          intro: "从这组竞品看，JotLuck 最稳的首发姿势不是讲 SaaS，而是讲可控与可信。",
+          items: [
+            "主叙事：本地优先、纯文本、离线可用、数据不锁死。",
+            "主卖点：官方可信安装包、稳定编辑体验、搜索/链接/导出闭环、支持型付费。",
+            "主对比：不跟云工作台比组织协同，而跟 Typora / MWeb / Obsidian 比本地体验与可信发行。",
+          ],
+        },
+      ];
+
+      const filters = [
+        { id: "all", label: "全部", match: () => true },
+        { id: "global", label: "全球", match: (item) => item.region === "global" },
+        { id: "china", label: "中国", match: (item) => item.region === "china" },
+        { id: "writing", label: "写作", match: (item) => item.category === "writing" },
+        { id: "pkm", label: "PKM", match: (item) => item.category === "pkm" },
+        { id: "notes", label: "轻量笔记", match: (item) => item.category === "notes" },
+        { id: "oss", label: "开源", match: (item) => item.openSource },
+        { id: "closed", label: "非开源", match: (item) => !item.openSource },
+      ];
+
+      let activeFilter = "all";
+
+      function categoryLabel(category) {
+        return {
+          writing: "写作工具",
+          pkm: "知识管理",
+          notes: "轻量笔记",
+        }[category];
+      }
+
+      function regionLabel(region) {
+        return region === "china" ? "中国 / 中文语境" : "全球";
+      }
+
+      function averageScore(item) {
+        const { fit, business, threat, diff } = item.scores;
+        return ((fit + business + threat + diff) / 4).toFixed(1);
+      }
+
+      function scorePill(value) {
+        return `<span class="score-pill score-${Math.max(1, Math.min(5, Math.round(value)))}">${value}</span>`;
+      }
+
+      function scoreBar(value) {
+        return `
+          <div class="bar">
+            <div class="bar-track"><div class="bar-fill" style="width:${(value / 5) * 100}%"></div></div>
+            <div class="bar-label">${value.toFixed(1)}</div>
+          </div>
+        `;
+      }
+
+      function getVisibleCompetitors() {
+        return competitors
+          .filter((item) => filters.find((filter) => filter.id === activeFilter).match(item))
+          .sort((a, b) => Number(averageScore(b)) - Number(averageScore(a)));
+      }
+
+      function renderMapKpis() {
+        const cards = [
+          {
+            title: "直接相撞区",
+            body: "Typora、MWeb、Obsidian、思源是 JotLuck 当前最需要正面研究的四个名字。",
+            score: "4 / 12",
+          },
+          {
+            title: "本地优先阵营",
+            body: "12 个主竞品里，真正把“本地文件 / 离线”作为主叙事的仍是少数。",
+            score: `${competitors.filter((item) => item.localFirstLevel >= 4.5).length} / 12`,
+          },
+          {
+            title: "买断型样板",
+            body: "Typora、iA Writer、MWeb 说明一次性付费在细分写作工具里仍可成立。",
+            score: "3 / 12",
+          },
+          {
+            title: "云依赖阵营",
+            body: "Bear、Ulysses、Effie、UpNote 更依赖账号、同步或订阅闭环。",
+            score: "4 / 12",
+          },
+        ];
+
+        document.getElementById("map-kpis").innerHTML = cards
+          .map(
+            (card) => `
+              <div class="kpi-card">
+                <strong>${card.title}</strong>
+                <em>${card.body}</em>
+                <div class="kpi-score">${card.score}</div>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      function renderMarketMap() {
+        const svg = document.getElementById("market-map");
+        const width = 1120;
+        const height = 520;
+        const margin = { top: 32, right: 32, bottom: 54, left: 78 };
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
+
+        const x = (value) => margin.left + (value / 5) * innerWidth;
+        const y = (value) => margin.top + innerHeight - (value / 5) * innerHeight;
+        const labelPlacements = {
+          obsidian: { dx: -44, dy: -22, anchor: "end" },
+          logseq: { dx: -44, dy: -2, anchor: "end" },
+          siyuan: { dx: -44, dy: 18, anchor: "end" },
+          joplin: { dx: 18, dy: 4, anchor: "start" },
+          upnote: { dx: 18, dy: 4, anchor: "start" },
+          "ia-writer": { dx: 18, dy: 8, anchor: "start" },
+          bear: { dx: 18, dy: 8, anchor: "start" },
+          ulysses: { dx: 18, dy: 8, anchor: "start" },
+          effie: { dx: 18, dy: 0, anchor: "start" },
+          zettlr: { dx: -18, dy: 18, anchor: "end" },
+          typora: { dx: -18, dy: 6, anchor: "end" },
+          mweb: { dx: -18, dy: -8, anchor: "end" },
+        };
+
+        const horizontalGuides = Array.from({ length: 6 }, (_, i) => i);
+        const verticalGuides = Array.from({ length: 6 }, (_, i) => i);
+        const getLabelPlacement = (item) => {
+          if (labelPlacements[item.id]) {
+            return labelPlacements[item.id];
+          }
+
+          const nearRight = item.localFirstLevel >= 4.35;
+          const nearTop = item.knowledgeLevel >= 4.45;
+          return {
+            dx: nearRight ? -18 : 18,
+            dy: nearTop ? 14 : 4,
+            anchor: nearRight ? "end" : "start",
+          };
+        };
+        const renderLabel = (item, extraClass = "subtle") => {
+          const placement = getLabelPlacement(item);
+          const lineEndX = placement.anchor === "end" ? placement.dx + 6 : placement.dx - 6;
+          const lineEndY = placement.dy;
+          const labelClass = ["map-label", extraClass].filter(Boolean).join(" ");
+          return `
+            <line class="map-leader" x1="0" y1="0" x2="${lineEndX}" y2="${lineEndY}"></line>
+            <text
+              class="${labelClass}"
+              x="${placement.dx}"
+              y="${placement.dy + 5}"
+              text-anchor="${placement.anchor}"
+            >${item.name}</text>
+          `;
+        };
+
+        const dots = competitors
+          .map((item) => {
+            const color = item.region === "china" ? "var(--warning)" : "var(--accent)";
+            return `
+              <g transform="translate(${x(item.localFirstLevel)}, ${y(item.knowledgeLevel)})">
+                <circle class="map-halo" r="16" fill="${color}"></circle>
+                <circle class="map-core" r="8" fill="${color}"></circle>
+                ${renderLabel(item)}
+              </g>
+            `;
+          })
+          .join("");
+
+        const jotluck = `
+          <g transform="translate(${x(4.8)}, ${y(2.8)})">
+            <rect x="-12" y="-12" width="24" height="24" rx="7" fill="var(--danger)"></rect>
+            <line class="map-leader" x1="0" y1="0" x2="-36" y2="-16"></line>
+            <text class="map-label jotluck" x="-42" y="-12" text-anchor="end">JotLuck</text>
+          </g>
+        `;
+
+        svg.innerHTML = `
+          <rect x="0" y="0" width="${width}" height="${height}" fill="transparent"></rect>
+          ${horizontalGuides
+            .map(
+              (guide) => `
+                <line
+                  x1="${margin.left}"
+                  y1="${y(guide)}"
+                  x2="${width - margin.right}"
+                  y2="${y(guide)}"
+                  class="map-grid-line"
+                />
+              `,
+            )
+            .join("")}
+          ${verticalGuides
+            .map(
+              (guide) => `
+                <line
+                  x1="${x(guide)}"
+                  y1="${margin.top}"
+                  x2="${x(guide)}"
+                  y2="${height - margin.bottom}"
+                  class="map-grid-line"
+                />
+              `,
+            )
+            .join("")}
+          <line class="map-axis-line" x1="${margin.left}" y1="${height - margin.bottom}" x2="${width - margin.right}" y2="${height - margin.bottom}" />
+          <line class="map-axis-line" x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${height - margin.bottom}" />
+          <text class="map-axis-label" x="${width / 2}" y="${height - 12}" text-anchor="middle">云依赖 ←→ 本地优先</text>
+          <text class="map-axis-label" x="26" y="${height / 2}" text-anchor="middle" transform="rotate(-90 26 ${height / 2})">写作工具 ←→ 知识管理</text>
+          ${dots}
+          ${jotluck}
+        `;
+      }
+
+      function renderFilters() {
+        const root = document.getElementById("filters");
+        root.innerHTML = filters
+          .map(
+            (filter) => `
+              <button class="filter-button ${filter.id === activeFilter ? "active" : ""}" data-filter="${filter.id}">
+                ${filter.label}
+              </button>
+            `,
+          )
+          .join("");
+
+        root.querySelectorAll("button").forEach((button) => {
+          button.addEventListener("click", () => {
+            activeFilter = button.dataset.filter;
+            renderFilters();
+            renderScoreboard();
+          });
+        });
+      }
+
+      function renderScoreboard() {
+        const body = document.getElementById("scoreboard-body");
+        body.innerHTML = getVisibleCompetitors()
+          .map(
+            (item) => `
+              <tr>
+                <td>
+                  <strong><a href="${item.url}" target="_blank" rel="noreferrer">${item.name}</a></strong>
+                  <div class="small muted">${item.targetUsers}</div>
+                </td>
+                <td><span class="chip ${item.region}">${regionLabel(item.region)}</span></td>
+                <td>${categoryLabel(item.category)}</td>
+                <td><span class="chip ${item.openSource ? "opensource" : "closed"}">${item.openSource ? "开源" : "闭源"}</span></td>
+                <td>${item.pricingModel}</td>
+                <td>${scorePill(item.scores.fit)}</td>
+                <td>${scorePill(item.scores.business)}</td>
+                <td>${scorePill(item.scores.threat)}</td>
+                <td>${scorePill(item.scores.diff)}</td>
+                <td><strong>${averageScore(item)}</strong></td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function countBy(key) {
+        const counts = new Map();
+        competitors.forEach((item) => {
+          const value = item[key];
+          counts.set(value, (counts.get(value) || 0) + 1);
+        });
+        return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+      }
+
+      function renderPricingBars() {
+        const labels = {
+          "免费核心 + 付费服务": "免费核心 + 服务",
+          "开源免费 + 托管订阅服务": "开源 + 托管服务",
+          "免费核心 + 云订阅": "免费 + 云订阅",
+          "免费开源 / 捐赠支持": "免费开源 / 赞助",
+          "一次性买断": "一次性买断",
+          "按平台一次性买断": "按平台买断",
+          "订阅制": "订阅制",
+          "免费 + 订阅 / 终身版": "免费 + 订阅 / 终身",
+          "免费核心 + 会员订阅": "免费 + 会员",
+          "终身版 + 订阅并存": "终身版 + 订阅",
+          "订阅制 + AI 增值": "订阅 + AI 增值",
+        };
+        document.getElementById("pricing-bars").innerHTML = countBy("pricingModel")
+          .map(
+            ([model, count]) => `
+              <div style="margin-bottom: 14px">
+                <div class="small muted" style="margin-bottom: 6px">${labels[model] || model}</div>
+                <div class="bar">
+                  <div class="bar-track"><div class="bar-fill" style="width:${(count / competitors.length) * 100}%"></div></div>
+                  <div class="bar-label">${count}</div>
+                </div>
+              </div>
+            `,
+          )
+          .join("");
+
+        document.getElementById("pricing-lessons").innerHTML = `
+          <ul>
+            <li><strong>先卖可信度，再卖便利性。</strong> Obsidian、Joplin、思源都把本地核心能力放在前面，把同步和服务放在后面。</li>
+            <li><strong>买断仍然有效。</strong> Typora、MWeb、iA Writer 证明在写作工具赛道，一次性购买并没有过时。</li>
+            <li><strong>小团队也能跑出低价模型。</strong> UpNote 的“免费 + 低价 Premium / 终身”对独立产品尤其有参考价值。</li>
+          </ul>
+        `;
+      }
+
+      function renderDistribution() {
+        const groups = [
+          {
+            title: "下载信任链",
+            items: [
+              "官网直下仍是最常见主路径，尤其是 Obsidian、Typora、Zettlr、MWeb。",
+              "商店分发更常见于 Bear、UpNote、Effie、思源的移动端与部分桌面端。",
+              "JotLuck 若主打 Windows 首发，必须把签名、SHA256、版本说明做成资产，而不是附属品。",
+            ],
+          },
+          {
+            title: "账号 / 同步闭环",
+            items: [
+              "Bear、Ulysses、UpNote、Effie 对账号或云同步依赖更高。",
+              "Obsidian、Joplin、思源把同步做成增值项而非本地写作门槛。",
+              "JotLuck 更适合复制后者：不拦本地写作，只为官方便利性收费。",
+            ],
+          },
+          {
+            title: "生态与社区分发",
+            items: [
+              "Obsidian、Logseq、Joplin、思源的社区与插件生态会强化留存。",
+              "Typora、iA Writer、MWeb 的生态较弱，但靠体验与口碑仍能成交。",
+              "JotLuck 当前更适合先走‘文档 + 对比页 + VS Code 漏斗’，不急着做大生态。",
+            ],
+          },
+          {
+            title: "平台覆盖策略",
+            items: [
+              "跨平台广撒网的通常也更依赖云和账号体系。",
+              "写作工具赛道存在一条清晰的 Apple-only / desktop-first 成功路线。",
+              "JotLuck 的现实策略是：先把 Windows 做成，再用 VS Code 和内容触达跨平台用户。",
+            ],
+          },
+        ];
+
+        document.getElementById("distribution-grid").innerHTML = groups
+          .map(
+            (group) => `
+              <div class="lane">
+                <h3>${group.title}</h3>
+                <ul>${group.items.map((item) => `<li>${item}</li>`).join("")}</ul>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      function renderCapabilities() {
+        document.getElementById("capability-body").innerHTML = competitors
+          .slice()
+          .sort((a, b) => b.localFirstLevel - a.localFirstLevel || b.markdownNative - a.markdownNative)
+          .map(
+            (item) => `
+              <tr>
+                <td>
+                  <strong>${item.name}</strong>
+                  <div class="small muted">${categoryLabel(item.category)}</div>
+                </td>
+                <td>${scoreBar(item.markdownNative)}</td>
+                <td>${scoreBar(item.fileVisibility)}</td>
+                <td>${scoreBar(item.syncDependency)}</td>
+                <td>${scoreBar(item.aiOnlineLevel)}</td>
+                <td>${scoreBar(item.themePluginOpenness)}</td>
+                <td class="small muted">${item.notes}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderOpportunities() {
+        document.getElementById("opportunity-grid").innerHTML = conclusions
+          .map(
+            (block) => `
+              <article class="opportunity-card">
+                <h3>${block.title}</h3>
+                <p>${block.intro}</p>
+                <ul>${block.items.map((item) => `<li>${item}</li>`).join("")}</ul>
+              </article>
+            `,
+          )
+          .join("");
+      }
+
+      function renderAppendix() {
+        document.getElementById("appendix-grid").innerHTML = competitors
+          .map(
+            (item) => `
+              <article class="appendix-card">
+                <header>
+                  <div>
+                    <h3><a href="${item.url}" target="_blank" rel="noreferrer">${item.name}</a></h3>
+                    <div class="small muted">${regionLabel(item.region)} · ${categoryLabel(item.category)}</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div class="small muted">研究关注度</div>
+                    <div class="mono" style="font-size: 20px">${averageScore(item)}</div>
+                  </div>
+                </header>
+                <div class="small"><strong>目标用户：</strong>${item.targetUsers}</div>
+                <div class="small" style="margin-top: 6px"><strong>定价：</strong>${item.pricingSummary}</div>
+                <div class="small" style="margin-top: 6px"><strong>平台：</strong>${item.platforms.join(" / ")}</div>
+                <div class="small" style="margin-top: 6px"><strong>AI / 联网边界：</strong>${item.aiBoundary}</div>
+                <div class="small" style="margin-top: 6px"><strong>团队 / 分发：</strong>${item.teamCapability} ${item.distribution}</div>
+                <div class="small" style="margin-top: 6px"><strong>信任信号：</strong>${item.trustSignal}</div>
+                <div class="small" style="margin-top: 6px"><strong>JotLuck 视角备注：</strong>${item.notes}</div>
+                <div class="source-list">
+                  ${item.sources
+                    .map(
+                      (source) =>
+                        `<a href="${source}" target="_blank" rel="noreferrer">${source}</a>`,
+                    )
+                    .join("")}
+                </div>
+              </article>
+            `,
+          )
+          .join("");
+
+        document.getElementById("benchmark-card").innerHTML = `
+          <header>
+            <div>
+              <h3><a href="${benchmark.url}" target="_blank" rel="noreferrer">${benchmark.name}</a></h3>
+              <div class="small muted">生态基准 / 不进入主评分榜</div>
+            </div>
+          </header>
+          <p class="muted">${benchmark.summary}</p>
+          <p class="small"><strong>为什么重要：</strong>${benchmark.whyItMatters}</p>
+          <ul>
+            ${benchmark.notes.map((item) => `<li>${item}</li>`).join("")}
+          </ul>
+          <div class="source-list">
+            ${benchmark.sources
+              .map((source) => `<a href="${source}" target="_blank" rel="noreferrer">${source}</a>`)
+              .join("")}
+          </div>
+        `;
+      }
+
+      function init() {
+        renderMapKpis();
+        renderMarketMap();
+        renderFilters();
+        renderScoreboard();
+        renderPricingBars();
+        renderDistribution();
+        renderCapabilities();
+        renderOpportunities();
+        renderAppendix();
+      }
+
+      init();
+    </script>
+  </body>
+</html>

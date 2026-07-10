@@ -27,7 +27,7 @@
           │                 emit('select', '/欢迎.md')
           │                   → onSelectFile('/欢迎.md')
           │                     → fs.readFile('/欢迎.md')
-          │                       → currentContent = '# 欢迎使用 MarkLuck...'
+          │                       → currentContent = '# 欢迎使用 JotLuck...'
           └── #editor
                 └── MarkdownEditor (:model-value=currentContent)
                       └── CodeMirror 6 EditorView
@@ -51,7 +51,7 @@
 | #   | 操作               | URL/位置                 | 预期结果                                                                              | 数据流验证点                                                                    |
 | --- | ------------------ | ------------------------ | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | 1   | 打开首页           | `http://localhost:5174/` | 左侧显示文件列表（📄 欢迎.md, 📄 快速入门.md），中间显示 "选择左侧一条笔记开始编辑"   | NotebookHome onMounted → MockFSService.listDirectory → files ref → FileTree渲染 |
-| 2   | 点击 "欢迎.md"     | 左侧文件树               | 中间编辑区显示 CodeMirror 6 编辑器，内容为 "# 欢迎使用 MarkLuck..."                   | onSelectFile → fs.readFile → MarkdownEditor :model-value                        |
+| 2   | 点击 "欢迎.md"     | 左侧文件树               | 中间编辑区显示 CodeMirror 6 编辑器，内容为 "# 欢迎使用 JotLuck..."                    | onSelectFile → fs.readFile → MarkdownEditor :model-value                        |
 | 3   | 检查 CM6 编辑器    | 中间编辑区               | 代码编辑器有行号、Markdown 语法高亮、块标记（左侧蓝色竖线）                           | CodeMirror 6 EditorView + extensions                                            |
 | 4   | F12 Console        | DevTools                 | 无红色错误，无 console.log 输出                                                       | ESLint no-console 规则生效                                                      |
 | 5   | 输入 Markdown 语法 | 编辑器                   | `**bold**` → 语法高亮；`# heading` → 标题高亮                                         | markdown() extension                                                            |

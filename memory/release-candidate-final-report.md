@@ -1,4 +1,4 @@
-# MarkLuck v0.15.0-rc.1 Final RC Report
+# JotLuck v0.15.0-rc.1 Final RC Report
 
 Date: 2026-06-30
 Owner: Codex
@@ -32,18 +32,18 @@ and Rust audit evidence is attached from CI or a local `cargo-audit` run.
 | ------------------------------------------------ | ------- | -------------------------------------------------------- |
 | `pnpm typecheck`                                 | PASS    | Final external audit                                     |
 | `pnpm lint`                                      | PASS    | Final external audit                                     |
-| `pnpm --filter @markluck/app lint:style`         | PASS    | Final external audit                                     |
+| `pnpm --filter @jotluck/app lint:style`          | PASS    | Final external audit                                     |
 | `pnpm format`                                    | PASS    | Final external audit                                     |
 | `pnpm test`                                      | PASS    | 187/187                                                  |
 | `pnpm test:coverage`                             | PASS    | 80% threshold active; core whitelist over threshold      |
-| `pnpm --filter @markluck/app build`              | PASS    | Final external audit                                     |
+| `pnpm --filter @jotluck/app build`               | PASS    | Final external audit                                     |
 | Chromium E2E                                     | PASS    | 140 passed                                               |
 | Firefox E2E                                      | PASS    | 137 passed / 3 skipped                                   |
 | WebKit E2E                                       | PASS    | 137 passed / 3 skipped                                   |
 | WebKit rapid note switching                      | PASS    | repeat=5 passed                                          |
 | `pnpm audit --audit-level high`                  | PASS    | No high-or-higher advisories                             |
 | `cargo fmt --check && cargo check && cargo test` | PASS    | Rust tests 11/11                                         |
-| `pnpm --filter @markluck/app tauri:build`        | PASS    | Generated `MarkLuck_0.15.0_x64-setup.exe`                |
+| `pnpm --filter @jotluck/app tauri:build`         | PASS    | Generated `JotLuck_0.15.0_x64-setup.exe`                 |
 | `pnpm audit:rust`                                | PENDING | Requires CI green evidence or local `cargo-audit` output |
 
 ## Current RC Package Identity
@@ -51,7 +51,7 @@ and Rust audit evidence is attached from CI or a local `cargo-audit` run.
 - App version: `0.15.0`
 - Release channel: `v0.15.0-rc.1`
 - Installer:
-  `packages/app/src-tauri/target/release/bundle/nsis/MarkLuck_0.15.0_x64-setup.exe`
+  `packages/app/src-tauri/target/release/bundle/nsis/JotLuck_0.15.0_x64-setup.exe`
 - SHA256: must be recorded in the installed-app L4 report for the exact
   published build.
 - Windows registered note extensions: `.md`, `.markdown`, `.mdx`
