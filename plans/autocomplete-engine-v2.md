@@ -1,7 +1,7 @@
 # 离线补全引擎 V2 执行计划与 V2.1 扩展方向
 
-> 日期：2026-07-11
-> 状态：V2 运行时实现完成，发布质量闸门保持关闭；V2.1 为后续增值扩展
+> 日期：2026-07-12
+> 状态：V2 工作区运行时完成；公共 L3 已收口为唯一、默认未绑定的模型插槽，V2R 固定短语架构已停止；发布质量闸门保持关闭，V2.1 未解锁
 > 范围：仅文字补全引擎、模型与对应规格；不涉及主题、UI 重设计或品牌重命名
 
 ## 1. 目标与边界
@@ -27,7 +27,7 @@ Markdown context snapshot
        ├─ current-document reuse / recent phrase
        ├─ notebook phrase retrieval
        ├─ lexicon / English word prefix
-       └─ Personal L2 / Notebook N2 / public L3
+       └─ Personal L2 / Notebook N2 / optional public L3 (currently unbound)
             ↓ normalize + language/Markdown/quality gates
        CandidateBatch(top 8) + deterministic fallback
             ↓ common lightweight ranker
@@ -148,9 +148,64 @@ V2 运行时已按本计划实现：CandidateBatch/Router 异步接缝、稳定 
 - Worker/CSP 不可用时关闭 Hybrid Retrieval，禁止在主线程同步建工作区索引。查询读取最近一次原子提交的 revision 快照，不等待 mutation backlog；健康诊断暴露后端类型、ready/warming/degraded/disabled、revision、积压、重建次数、构建耗时、估算内存和长任务数。
 - 每个工作区每次会话只允许一次后端重建。重建由训练服务从当前工作区文件幂等回放；重建期间到达的 mutation 等待原子替换后再提交，第二次故障熔断并退回确定性免费路径。
 - 24MiB 扩池仅使用固定 seed 的五个项目自有合成来源。正文和七档候选位于 Git 忽略目录；selection manifest 绑定实际文档 ID、片段 ID 与内容 SHA，小档必须是大档的真实严格前缀。七档候选始终 `releaseEligible:false`；RC 先生成候选，只对确定性合格档临时安装并通过生产 Router 测量，然后恢复 fail-closed public 资产并重新选档。
-- final 通过后仍需由独立 post-final publisher 重读 selected candidate、receipt、质量/运行时/V1 对照/学习曲线和 WebView 证据，才可原子替换 web-local/release 两 profile；`selectedTier:null`、缺失证据或任一 SHA 不一致时必须零写入。
+- final 通过后仍需由独立 post-final publisher 重读 selected candidate、receipt、质量/运行时/V1 对照/学习曲线和 WebView 证据，才可原子替换唯一 canonical `web-local` profile；`selectedTier:null`、缺失证据或任一 SHA 不一致时必须零写入。
 - 发布证据分别保存 final holdout 与 final 报告；evaluator identity 的文件集合由发布代码固定并覆盖 Web/Worker/编辑器、E2E runtime evaluator、Rust 检索与共用 golden fixture。RC/publisher 必须读取实际源码重算 tree，并将冻结 V1 与固定 `fb46b1e` tree/model 身份复核，identity 文件不能自行缩小校验范围。
 
 V2.1 继续保持关闭。只有免费 V2 已为 `releaseEligible:true`，且 workspace-conditioned holdout 的中英文分项都支持 `Oracle@8 - Top1 >= 8pp`，才允许进入微型 Transformer 训练。
 
 七档项目自有合成 dry-run 已执行：五个来源、成员嵌套、治理、5.7/6MiB 预算全部通过；实际训练字节从 104,705 增至 25,160,955，模型从 353,097B 增至 840,413B。但 cold validation 的 usable 全部为 0，Top-1/Oracle@8 最高仅 1.33%，24MiB-cap 为 0.67%，触发率从 7% 降至 5.5%。因此 `selectedTier:null`，不运行候选 runtime/final/publisher，不替换 public，也不解锁 V2.1。另经新治理器复核，当前冻结 final-v2 的 support 结构模板占比为 25%，超过 10% 上限；即使 validation 日后选出候选，该 final 版本也必须先 fail-closed，不能作为手工独立证据。候选目录固定为 `scripts/corpus/_web-cache/autocomplete-candidates/learning-curve-v2/`。
+
+## 8. 公共 L3 V2R 全量重构（2026-07-12）
+
+### 8.1 重构原因与保留边界
+
+24MiB 学习曲线已经证明旧 v4 不是容量不足：context hit 固定在 17.5%，usable 始终为 0。正式 validation 的 75 个英文正例都位于完整单词边界，后缀以空格或标点开头；旧字符模型会剥离这些边界，英文可见触发为 0。即使所有中文正例全部命中，总触发也只有 75/200，即 37.5%，结构上不可能达到新门槛。
+
+因此停止调参公共 N-gram v4，替换其公共 L3 模型、训练器、加载器和证据。结构化 Provider、L1、Personal L2、Notebook/Hybrid、Resolver、ghost text 交互以及个人/Notebook N-gram 全部保留。旧 v4 public 资产在 V2R 放行前继续 fail-closed，放行后移出生产加载路径；冻结 V1 仍只用于评测。
+
+### 8.2 固定实施阶段
+
+1. 定义 `CompletionPublicEngine`、v5 manifest、Worker 协议、epoch/deadline/Abort 契约和损坏资产降级测试。
+2. 建立项目自有生成器 v3、许可明确的可选 CC0 导入器、30MiB 分组语料治理和固定短语库构建器。
+3. 为三档短语库先运行独立 validation 表示能力预检。总体 <70% 或任一语言 <65% 时跳过对应两个 seed，不消耗 CPU 训练，也不读取 final。
+4. 只对通过预检的 8,192/96/2、12,288/128/2、16,384/128/3 档位执行每档两个 seed、最多 8 epochs、patience 2 的可复现训练。
+5. 只在 development 校准 abstain/触发阈值，选择满足内部门槛的最小模型并冻结 ONNX、短语库和阈值。
+6. 依次消费 cold final v3 与 workspace final v3。任一失败则该 final 版本作废，保留 RC code 10；全部通过才原子发布唯一 canonical profile。
+
+当前管线状态：30MiB 池已由生成器 v3.1 与固定 SHA 的 Tatoeba English CC0 子集物化，并通过容量、来源、类别、重复、模板、高频 5-gram 和逐文档 trigram 集中度治理；Common Voice 未取得批准快照，因此其份额由项目自有生成器补足。训练输入固定为 silence-safe v3：bank miss 只计覆盖缺口，文档末尾才是 abstain；192-byte 上下文以 48×4-byte patch 输入。用于验证构建链的 reduced ORT v1.27.0 WASM 为 3,695,459B，未使用 stock 运行时。新的四套人工冻结 v3 holdout 尚未提交，所以正式矩阵必须在表示能力预检入口 fail closed，不得把旧 v2 诊断集或 smoke 模型升级为发布证据。
+
+### 8.3 质量与资源闸门
+
+- 每套 final 固定 200 checkpoints：触发 120–130，绝对可用至少 120；中文和英文分别 ≥55%，任一类别 ≥50%；50 个 silence 最多误触发 1，mixed 为 0。
+- 每个正例在训练前冻结 3–5 条人工参考。中文候选至少 3 个有效汉字；英文至少一个完整单词且总字母数 ≥5。不得用纯空格、标点或低信息虚词刷命中。
+- 公共资产合计 ≤6MiB，包含精简 Worker/WASM 的应用静态增量 ≤12MiB；模型工作不得在主线程产生 >50ms 长任务；全请求与可见 ghost p90 均 ≤140ms。
+- 训练来源、许可、隐私、重复、训练—holdout 重叠和证据哈希任一失败均阻止发布。final 不可重跑，RC 不得只相信 manifest 布尔值。
+
+### 8.4 与 V2.1 的关系
+
+V2R 是免费的公共候选生成器，不是付费 V2.1 Ranker。它只能从固定短语库生成候选，并继续经过现有硬门控与 Resolver。V2.1 的数据型热插拔接口保留，但本轮不实现；其解锁条件将在 V2R 发布后重新依据同集 Oracle 差距、分语言收益和真实运行时证据计算。
+
+### 8.5 2026-07-13 架构停止结论
+
+固定矩阵的训练数据已完整生成，但不再启动 12,288/16,384 的长训练。原因不是 INT8、WASM、Worker 或模型体积：8,192 档 INT8 仅 1,225,507B，量化 Top-1/Oracle 一致率分别为 98.62%/99.79%。真正阻碍是固定输出空间无法覆盖真实写作 continuation。
+
+- 8,192/12,288/16,384 短语库在生成池 internal split 的 bank coverage 分别为 74.54%/78.56%/80.97%。
+- 同三档在已观察、仅作诊断的 `formal-independent-writing-v2` 上，单参考绝对表示率分别为 10.5%/10.5%/13%；16,384 档中文 6%、英文 20%。该诊断不是发布证据，但足以用于终止明显无效的架构搜索。
+- 8,192/96/2 完整八轮训练在经过 bank-hit 过滤的 internal selection 上仍只有 38.16% 绝对可用率、63.28% Oracle@32；`candidateEligible:false`。这里的 Oracle 是“已可表示正例上的条件指标”，不能再称为真实写作候选上限。
+- 从 8,192 扩到 12,288 没有增加任何真实诊断命中，扩到 16,384 只增加 5/200。继续增加同类短语或重调分类阈值不能填补中文开放组合空间，也不能把 13% 提升到 70%。
+
+因此 `public-phrase-transformer-v1` 的“固定短语库 + 全库分类头”路线被标记为 architecture-blocked。训练入口、publisher 与 v5 verifier 在 `scripts/corpus/autocomplete-v2r-architecture-stop.json` 存在时全部拒绝长训练或发布；其 Worker/ONNX 默认运行时已从生产源码与依赖图移除。当前只保留一份 canonical v4 public 资产且继续 fail-closed，RC 保持 code 10。若以后重启公共神经补全，必须以新的 ADR 定义开放词表或可组合输出空间，并重新建立未观察 v3 holdout；新实现只能替换唯一公共 L3 插槽，不能删除 stop 记录后继续同一矩阵。V2.1 也不因本次实验自动解锁。
+
+## 9. Public V2S 实施方向（2026-07-13）
+
+Public V2S 以 `public-v2s-mkn-v1` 替换失败的固定短语输出空间：中英文独立 Subword Modified Kneser-Ney/Trie 负责可组合候选生成，逻辑回归或 16-hidden INT8 Gate 负责排序与拒答。它不恢复 ONNX、Transformer、Tiny GRU 或通用推理运行时。
+
+实施顺序固定为：先加固公共 Worker 的 256-byte 上下文与原始候选信任边界；再生成 V2S selection、双 tokenizer 和四档 MKN 资产；中英文分区分别从同一 3MiB BPE/Unigram 对照中选择胜者，最多允许一次按语言组合校正；Oracle 通过后才训练两种 Gate；随后依次运行全新 cold/workspace validation，并在唯一候选冻结后一次性消费两套 final。训练器和评测器不得写 public，唯一 publisher 最后原子安装一份 v6 manifest 和一份内容寻址二进制。
+
+发布硬门槛恢复为每套 200 checkpoint 触发 70–84、绝对可用至少 70、50 个 silence 最多误触发 1、mixed 0、双 p90 ≤140ms，并要求合流结果不低于同集 Public-off B0。Public Oracle@8/32 absolute 分别低于 40%/45% 时判定 architecture blocked；Oracle 足够但固定 Gate 加一次 hard-negative 修订仍失败时判定 method blocked。任一停止状态都保持 RC code 10，禁止继续同根因循环训练。
+
+### 9.1 2026-07-13 有界训练结论
+
+固定矩阵与唯一一次逐语言方法修正已执行完毕。最大 `BPE-en + Unigram-zh` 候选使用 24MiB train 前缀，单一二进制 5,735,917B，解析约 21.47ms、生成 p90 约 8.97ms、mixed 0；但在 200 checkpoint development 预检上 Oracle@8 只有 74（37%），Oracle@32 只有 80（40%），英文 Oracle@8 为 31%。考虑到训练规模并非单调提升，逐语言取全部固定档位最好值的理论前沿也只有 Oracle@8 75（37.5%）和 Oracle@32 81（40.5%）；英文 Oracle@8 最好值为 32%，只能刚好达到分语言门槛，总体两项仍低于 40%/45%。
+
+因此 `public-v2s-mkn-v1` 已记录为 `architecture-blocked`。该 development 结果明确标记 `releaseEvidence:false`，不能外推为正式真实写作质量，也不能证明所有本地离线补全技术不可行；它只证明当前 30MiB 语料、≤6MiB 资产、4096-token 双语 Subword MKN/Trie 方案无法形成足够候选空间。按停止合同，不训练 G0/G1、不读取四套 final、不写 public、不解锁 V2.1，RC 继续 code 10。

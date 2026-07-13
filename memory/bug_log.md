@@ -1006,10 +1006,10 @@
 ## BUG-091: 外部文件与索引命令信任前端传入 root 造成文件边界过宽
 
 - **现象**: Tauri `build_index` / `update_index_document` 接收前端 rootPath，外部单文件读写缺少 Rust 侧会话授权状态；收紧后又暴露出“另存为新文件”因目标不存在被拒绝的问题。
-- **根因**: 文件边界由前端参数表达，Rust 没有统一以 `NotebookRoot` 和显式登记的 `ExternalAccessRoots` 为真源；写入路径复用读取解析，错误要求目标文件预先存在。
+- **根因**: 文件边界由前端参数表达，Rust 没有统一以 `NotebookRoot` 和会话级 `ExternalAccessGrants` 为真源；写入路径复用读取解析，错误要求目标文件预先存在。
 - **根因类别**: 文件IO / 跨平台兼容 / 安全边界
-- **修复**: 索引命令只从 `NotebookRoot` 读取当前笔记本根；外部文件读写引入 `ExternalAccessRoots`，仅允许文件关联、单实例事件或一方保存流程登记的父目录；写入解析允许在已授权父目录下创建新 `.md/.markdown/.mdx/.txt` 文件。
-- **验证**: `cargo check` PASS；`cargo test` 16/16 PASS；`pnpm --filter @jotluck/app tauri:build` 成功生成 `JotLuck_0.15.0_x64-setup.exe`。
+- **修复**: 索引命令只从 `NotebookRoot` 读取当前笔记本根；外部文件读写改为 Rust 签发的会话级 opaque grant，按读/写/目录枚举/watch 能力校验相对路径，支持外部文件授权后由后端提升为父目录笔记本；写入解析允许在已授权父目录下创建新 `.md/.markdown/.mdx/.txt` 文件。
+- **验证**: `cargo check` PASS；`cargo test` 35/35 PASS；Tauri 外部文件读写、目录提升和 watcher 均不接受 Renderer 绝对路径作为授权凭据。
 - **教训**: 桌面端文件命令的边界必须在 Rust 状态中闭合，不能由前端每次传 root 决定；读路径和写路径解析规则不同，另存为新文件必须单独测试。
 
 ## BUG-092: 文字补全与自定义模板把正文派生数据藏进 localStorage
@@ -1047,3 +1047,446 @@
 - **根因类别**: 发布工程 / 跨平台兼容 / 渲染管线 / 状态管理
 - **修复**: 新增 `app-meta` 单一配置源；移除无作用域 shell 权限并补静态测试；Rust watcher 改为可停止单例并接入前端 `unwatchAll()`；补 Setext、表格、列表、fenced code、裸 JSON-like 块回归测试；ThemeDialog 补安全区与稳定滚动槽。
 - **教训**: 发布质量项不能只靠人工清单；凡是“版本身份、权限、系统资源、渲染边界”都必须落到自动化测试或集中配置源中。
+
+## BUG-095: 未定义 spacing custom property 令 Halo 控件整条布局声明失效
+
+- **现象**: Halo Canvas 的搜索按钮文字贴边、导航条目没有有效间距、命令坞与格式工具栏缺少内边距；同时中央 Atelier 画布失去应有的 inset 与浮层层级，主题视觉退化为浅色圆角卡片。
+- **根因**: `tokens.css` 只定义了部分 4px 间距档位，但宿主与主题引用了 `--space-2/6/10/14/18/22/28/36/80`，以及孤立的 `--space-3/9`。CSS custom property 未定义时，包含它的整个 `padding`、`gap` 或 `inset` 声明在计算期失效；全局 reset 使部分属性视觉上回退为零。旧 Halo 又以裸主题控件替代宿主控制层，放大了这一系统缺口。
+- **根因类别**: 设计系统 / 渲染管线 / 主题系统
+- **修复**: 建立“4px 布局节奏 + 2px 控件微调”完整 spacing 合同，归一 `--space-3/9` 为 `--space-4/8`；新增 `lint:tokens` 扫描 CSS、Vue 与主题 CSS 字符串；为默认宿主控件添加稳定 `data-theme-part` 样式部件，Halo 改为保留宿主动作/图标/格式工具栏，仅以 scoped 玻璃 frame 重建环境、chrome 与安静正文画布。
+- **验证**: token lint 必须通过；单测覆盖未知 token 与 wrapper 保留的 action/格式/语义；E2E 断言搜索 padding、导航 gap、命令坞与工具栏 inset、正文画布阴影和玻璃降级，并固定真实运行时视觉基线。
+- **教训**: 设计 token 是可执行合同，不是命名建议。任何新 custom property 都必须同时有定义、静态检查和运行时 computed-style 断言；主题不能为了视觉重建已经由宿主正确提供的语义控件。
+
+## 检查清单追加
+
+- [ ] 新增或引用 `--space-*` 前，先确认其定义存在并运行 `pnpm.cmd lint:tokens`；不得使用 `--space-3`、`--space-9`。
+- [ ] 主题视觉验收必须检查关键控件的 computed padding/gap/inset 与正文阴影，不能只看 DOM 存在或单张探针截图。
+- [ ] 默认 slot 主题 wrapper 必须保留宿主 action、图标、ARIA、格式工具栏和编辑器状态机；若仅需材质与层级，不得重建裸控件。
+
+## BUG-096: 离线补全模型的文档训练、实例生命周期和发布基线缺少完整性边界
+
+- **现象**: 同一笔记每次自动保存都会重复放大整篇正文权重，编辑/删除无法撤销旧模式；切换编辑器会重复解析约 6MB L3，训练器仍绑定旧 Predictor；损坏或污染的 HTTP 200 baseline 会被静默接受；部分失焦路径还能把 ghost text 当作 Tab 接受。
+- **根因**: L1、正文派生模型和用户反馈共用聚合式 L2 写入；`ingestDocument()` 忽略 path，训练 meta 只记状态不记可撤销贡献；Predictor 由 keyed 编辑器拥有而训练器由页面长期持有；模型没有 manifest/hash/schema/最小条目校验；Markdown 边界、Unicode N-gram、Provider 去重和 ghost 焦点域分别实现，缺少统一契约。
+- **根因类别**: 状态管理 / 索引与模型完整性 / 渲染管线 / 发布工程
+- **修复**: 按 `autocomplete-spec.md` v1.3 实施工作区级 Predictor、按文件可替换 N2、scoped Personal L2、应用级只读 L3、模型 manifest 与 fail-closed 训练管线；统一 Markdown context、Unicode N-gram、Resolver 文本去重和 Tab-only 接受规则。
+- **教训**: 离线学习模型也必须具备数据身份、撤销语义、作用域、完整性校验和独立评测；扩大语料之前先证明每一条计数来自哪里、何时失效、由谁加载。
+
+## 检查清单追加
+
+- [ ] 自动保存训练必须以文件路径替换贡献，重复保存、修改、删除和重命名都要有可逆测试。
+- [ ] keyed 编辑器不得拥有大模型生命周期；切换 20 篇笔记只能加载/解析一次 L3。
+- [ ] baseline 的空/HTML/截断/hash/schema/条目数异常必须回退，训练闸门失败不得覆盖发布资产。
+- [ ] ghost text 只有编辑器持焦且非 IME 的无修饰键 Tab 可以接受；任何 blur 只能清除。
+
+## BUG-097: 连续输入被误记为拒绝且 E2E 在选笔记竞态中写入旧编辑器
+
+- **现象**: 同一段重复文本的 LineEcho 在单测稳定命中，但黑盒逐字输入时会随机消失；部分失败用例的可见编辑器已被初始化队列切回另一篇笔记，测试桥内容与待测文本完全不同。
+- **根因**: Ghost 插件在用户继续键入且没有采用当前候选时调用 `rejectCompletion()`，把隐式覆盖错误地当成 Escape 拒绝；达到两次后相同候选被 Resolver 静默。黑盒脚本同时只等待编辑器 DOM 可见，没有等待初始 `activePath` 选中队列完成，后到的 `onSelectNote()` 会重挂编辑器并覆盖刚输入的文本。
+- **根因类别**: 状态管理 / 补全反馈 / E2E 基础设施
+- **修复**: 删除继续输入路径的隐式拒绝，只允许明确 Tab/Escape 写学习反馈；黑盒和正式 holdout 在输入前等待文件清单、显式选择稳定路径并确认 `activePath`，再切换源码视图。新增继续输入不接受也不拒绝的 CM6 单测和全域 LineEcho 参数化回归。
+- **验证**: 单元测试 32 files / 376 tests 通过；补全 E2E 24/24 通过；黑盒 11/11 通过；真实写作 25/68，触发率与可用率 36.8%，误触发率 0，mixed 0，p90 105ms。
+- **教训**: “没有接受”不等于“明确拒绝”；个人学习只能消费有清晰用户意图的事件。E2E 的“编辑器可见”也不等于数据状态稳定，涉及 keyed remount 时必须同时确认 active identity。
+
+## 检查清单追加
+
+- [ ] 继续输入、blur、窗口失焦、弹窗切换只清除 ghost，不得写 accepted/rejected 信号。
+- [ ] keyed 编辑器 E2E 输入前必须确认 `activePath` 与当前测试目标一致，不能只等待 `.cm-content` 可见。
+
+## BUG-098: Halo 将环境、控件与正文拉平为同一张透明圆角卡
+
+- **现象**: 多层全屏彩雾使亮色 Halo 显得沉闷；导航、命令坞、工具栏和正文画布缺失材质差异，字体、圆角和控件宽度不匹配；768px 的右翼在压缩画布，360px 的两翼和多行命令坞抢占首屏。
+- **根因**: Halo 同时叠加了主题背景、app shell 和 workflow 的大面积渐变，再将外壳、工具组和正文使用同质的高透明白色、圆角和阴影。另外，主题以 `width: 100% !important` 覆盖 `RightWing` 的内联宽度，破坏了宿主窄轨与桌面 resize 的属性。
+- **根因类别**: 设计系统 / 主题系统 / 响应式布局
+- **修复**: 环境收束为单层低色度银雾，棱镜光只作为 glass chrome 的局部伪层；建立环境、轻浮 chrome、浅内凹工具组、主正文阴影的材质高度；将几何统一为 10/14/20/24px。`RightWing` 以 CSS custom property 作为内联 width 的响应式回退，桌面仍由宿主面板宽度控制，721–900px 则使用可访问的本地 56px/264px 检查器窄轨。
+- **验证**: 单测断言 `inspector-rail-toggle` 的 ARIA 状态；E2E 断言 1280 宿主右翼 resize、768 窄轨展开、360 正文优先、命令坞高度和水平工具栏。视觉基线必须在真实运行时重新编录，最后再做 GUI 旅程验收。
+- **教训**: “液态玻璃”不是给所有层增加透明和圆角；它是一套有明确光学、阴影、空间预算和字体尺寸信号的材质高度系统。
+
+## 检查清单追加
+
+- [ ] 官方主题的彩色折射必须局部、低频且仅存在于 chrome；不得用多层全屏彩雾代替材质层次。
+- [ ] 主题不得以 `!important` 接管宿主桌面尺寸所有权；如需响应式变体，优先使用 CSS custom property 作为宿主内联样式的可控回退。
+- [ ] 视觉回归必须覆盖 1280、768、360 的材质、空间和正文优先级；不得仅断言卡片可见或阴影非 `none`。
+
+## BUG-099: Personal L2、Notebook N2 与公共 L3 合并过早导致学习和跨文档规律失真
+
+- **现象**: Personal L2 与笔记本正文模型在进入 Provider 前已合并，无法独立归因或让学习信号改变同层胜者；单篇文档先裁剪再聚合会丢掉“分别在两篇文档各出现一次”的真实跨文档 transition；Provider 只暴露 top-1，使 Resolver 看不到可被拒绝/接受信号重排的备选项。
+- **根因**: 运行时把数据来源当成一张计数表，而不是具有不同生命周期和可信度的独立候选层；文档支持数只存在于聚合结果之后，训练入口没有保存每文件可撤销贡献与 support map；N-gram API 只返回单一预测。
+- **根因类别**: 状态管理 / 补全模型 / 统计口径
+- **修复**: L1、Personal L2、Notebook N2、L3 分表进入 `provideMany`，各层返回确定性 top-k；Notebook 保存每文件贡献和文档支持表，先聚合再按至少两篇文档支持过滤，编辑/删除/重命名可撤销；Resolver 先按规范化文本跨 Provider 去重，再应用拒绝和学习信号；short2/short3 继续独立存储和查询。
+- **验证**: 单测覆盖同文件幂等、编辑撤销、删除/重命名、跨文档单例 transition、四层候选、top-2、拒绝抑制与学习重排；最终 `vitest` 33 files / 410 tests PASS，补全 E2E 24/24 PASS。
+- **教训**: 离线模型的“计数相加”不是无损操作。来源、文档支持数、可撤销身份和候选集合必须保留到 Resolver 做完最终决策以后。
+
+## BUG-100: legacy 基线、剪枝后置信度与评测时序可伪造模型可发布性
+
+- **现象**: 旧 v3 基线没有词级分区、训练输入身份和绑定 holdout 的发布证据；剪枝后只看剩余分支会把单例样本表示成接近满置信度；固定探针、后台训练和人工 seed 可互相污染，报告随异步时序从 36 分跳到 99 分；中文句尾弱英文功能词（如 `他笑着说 the`）还可能错误切到英文候选。
+- **根因**: manifest 只验证文件存在，没有区分 runtime/release 资格；训练器未保存剪枝掉的概率质量，也未把质量报告绑定到模型、输入和 holdout 哈希；诊断 E2E 与真实后台训练共享同一 Predictor；mixed 语言路由只取最近 token，不判断该 token 是否足以成为技术语言锚点。
+- **根因类别**: 发布工程 / 评测泄漏 / 补全模型 / 语言门控
+- **修复**: 新增 sectioned v4 字符/英文词模型、`countScale`、隐藏 `other mass`、异步分块解析、SHA-256/字节/条目/schema 校验和 `runtimeEligible`/`qualityGatePassed`/`releaseEligible`；训练器实行全局 6MiB 预算蒸馏、原始与残余重复率、许可证/来源/语言/holdout 重叠闸门及原子候选输出；旧 v3 manifest 明确不可运行、不可发布，RC gate 给出 legacy 重建阻断；质量 E2E 关闭后台训练并只消费显式 seed；mixed 中文段落中的英文功能词不再单独触发英文路由。
+- **验证**: verified baseline governance 29 tests PASS；E2E `19-autocomplete-quality` 隔离后稳定为场景分 99、负样本误触发 0、mixed 0；真实写作 25/68，触发率/可用率 36.8%、误触发 0、mixed 0、p90 101ms；正式 holdout 0/32，因此候选未发布，RC gate 正确阻断 legacy 公共资产；生产/E2E build PASS。
+- **教训**: 模型质量必须绑定“哪份输入生成哪份模型、用哪份未见数据验收”。文件能解析、体积够小或固定探针分高，都不能替代独立 holdout 与可审计 manifest。
+
+## 检查清单追加
+
+- [ ] Personal L2、Notebook N2 与 L3 不得在 Provider 前合并；每层至少保留可归因的 top-k 候选到 Resolver。
+- [ ] 文档支持阈值必须在聚合所有文件贡献后计算，不能对单文件先剪枝再假装统计跨文档规律。
+- [ ] compact 模型剪枝必须保留未输出分支的概率质量；置信度需要按 manifest `countScale` 校准，单例不得变成满置信度。
+- [ ] 正式模型 manifest 必须绑定模型哈希、训练输入哈希和独立 holdout 证据；legacy 或 `runtimeEligible:false` 资产不得静默加载。
+- [ ] 质量 E2E 的人工 seed 不得与真实后台训练并行；诊断语料、开发探针和正式 holdout 必须隔离。
+- [ ] mixed 技术写作只能由有信息量的局部技术词切换语言；`the/a/to/of` 等功能词不能单独改变中文段落的模型路由。
+
+## BUG-101: Halo 玻璃层共用高乳白透明度导致磨砂工程塑料感
+
+- **现象**: Halo Canvas 已有模糊、圆角和浅色高光，但背景仍显灰闷；左右翼、顶栏、命令坞和按钮像同一种乳白塑料，缺少液态玻璃的透光、厚度、接触阴影与边缘色散。检查器空状态的斜体和等权分隔线进一步放大了粗糙感。
+- **根因**: 所有 chrome 共用 `--halo-glass-live: ... / 0.76`、近白 `--halo-glass-edge` 与同一 `--halo-glass-shadow`；环境场色差过小，`backdrop-filter` 没有可感知的底层光色可采样。普通图标按钮又使用透明边框和单层内高光，工具栏只呈现平面填充，材质高度没有通过上下缘明暗、接触阴影和局部折射建立。
+- **根因类别**: 设计系统 / 主题系统 / 视觉合成
+- **修复**: 将环境改为清透日光银蓝基底并加入克制暖光过渡；为左右翼、顶栏/状态栏、命令坞分别建立不同透明度与阴影高度；以双向内缘、接触阴影、局部蓝紫/珊瑚色散和半透明控制层表现玻璃厚度。检查器文本改用正常字形与更轻分隔层级，保留宿主控件、Theme API v2 和降级路径。
+- **教训**: `backdrop-filter` 不是玻璃质感本身。只有背景存在可采样光色、前景透明度足够、上下缘明暗不对称且各高度阴影不同，模糊才会被读成玻璃；所有层共用乳白填充只会得到塑料。
+
+## 检查清单追加
+
+- [ ] 玻璃主题必须分别验证环境色差、前景 alpha、双向内缘、接触阴影和局部折射；不得以单一 `blur()` 或统一乳白色替代材质高度。
+- [ ] 顶栏、侧翼、工具坞、内凹工具组和正文画布不得共用完全相同的背景与阴影组合。
+
+## BUG-102: V2 异步检索缺少请求身份、资源上限与双端一致性
+
+- **现象**: 工作区短语检索接入异步 Worker/Tauri 后，旧请求可能在切换文档或工作区后迟到；连续输入只取消主线程 Promise，Worker 仍会排队执行旧查询；Web/Rust 索引没有共同硬预算，损坏响应和 Unicode 兼容形式还可能产生平台差异；空段落会错误继承上一段的短语候选。
+- **根因**: 原同步 Predictor facade 没有不可变请求快照、epoch/deadline/Abort 契约和候选批次边界；Worker 协议只有 execute/response，没有 latest-only cancel；工作区索引的正文贡献、entry/surface 分配和 Unicode 规范化分别在 TS/Rust 独立实现，缺少统一预算与 fail-closed 校验。
+- **根因类别**: 补全模型 / 状态管理 / 跨平台兼容 / 资源生命周期
+- **修复**: 新增最多 8 条候选的 `CandidateBatch`、`CompletionEngineRouter`、反馈 token 与异步 ghost 请求；所有迟到结果校验 scope/epoch/document/cursor/focus，Worker 使用有序队列和 latest-only cancel；Web/Rust 统一 2,000 文档、512KiB 单文档、16MiB 总输入、20,000 单文档 entries、300,000 总 entries 的净值预算，并统一 NFKC、跨文档支持、损坏响应校验和超限保留旧贡献；普通检索禁止跨空段落。
+- **验证**: App 单测 41 files / 504 tests 通过；Rust 30/30 通过；真实浏览器 Worker 命中 `hybrid-retrieval-zh/en`，种子场景分 100、误触发 0、mixed 0、p90 ≤105ms；真实写作触发率/可用率 36.8%、误触发 0、p90 110ms。正式独立 holdout 仍证明公共 legacy L3 不具备发布资格，manifest 正确 fail closed。
+- **教训**: 异步补全后端首先是生命周期和资源边界问题，其次才是模型问题。任何可插拔排名或检索引擎都必须只能消费有界候选快照，并在取消、超时、切换、损坏和预算超限时无条件退回确定性免费路径。
+
+## 检查清单追加
+
+- [ ] 异步补全请求必须同时绑定 scope、engine/retrieval epoch、document version、cursor、deadline 和 AbortSignal；迟到结果不得更新 ghost 或学习归因。
+- [ ] Worker 查询必须 latest-only，取消要清理 pending/listener；dispose 不得等待可能永久悬挂的 mutation chain。
+- [ ] Web/Rust 工作区索引必须共享 Unicode 规范化、文档支持阈值和硬资源预算；新 surface 也必须计入 entry 预算。
+- [ ] 空段落、heading、table、code、frontmatter 不得触发普通工作区短语检索；结构化补全继续独立旁路。
+
+## BUG-103: 三态视图循环混用当前状态与目标动作并落入播放图标
+
+- **现象**: 在只读渲染模式中，工具区显示“编辑”按钮却配有播放三角图标；即时与分栏模式又显示当前模式名称。格式工具栏在只读渲染中仍然可见，用户无法判断按钮表示当前状态还是点击后的动作。
+- **根因**: `NotebookHome.vue` 的 `view-toggle` 在 `live/split` 使用“当前状态”文案，在 `read` 使用“下一动作”文案，并把“是否等于主题默认模式”写入二态 `aria-pressed`；`ShellActionButton.vue` 没有 `view-toggle` 专属图标，使它落入播放三角 fallback；`EditorControlStrip` 不感知只读渲染状态，始终渲染格式工具栏。
+- **根因类别**: 交互语义 / 无障碍 / 主题系统
+- **修复**: 三态按钮统一表达下一动作（分栏、只读、返回编辑），使用中性的视图布局图标并移除错误的 pressed 状态；宿主将当前 `viewMode` 传给默认控制条，在 `read` 模式保留视图动作但隐藏格式工具栏。Halo 继续只包裹宿主控件，不新增 Theme API 或 action。
+- **教训**: 循环动作不能同时充当状态指示器；图标、可见文案、ARIA 与点击结果必须表达同一件事。只读模式不得展示看似可用的编辑控件。
+
+## 检查清单追加
+
+- [ ] 多状态循环按钮必须统一表达目标动作，不能使用二态 `aria-pressed` 表示“是否等于默认值”。
+- [ ] 只读渲染必须隐藏或禁用编辑专属控件，并以 E2E 验证实际布局状态而非依赖按钮文本推断模式。
+
+## BUG-104: 补全质量诊断被误作发布证据且 Hybrid 故障会阻塞或永久熔断
+
+- **现象**: seeded/固定探针通过时容易被表述为模型质量通过，但独立写作仍无有效命中；Hybrid mutation 积压会拖住查询，Worker/CSP 不可用时可能在主线程建索引，单次瞬态后端错误还会永久关闭工作区检索。
+- **根因**: 评测报告没有区分治理、运行时安全与模型质量，也未把 V1/V2、holdout 和评测器身份绑定到同一证据链；检索服务把 query 串在 mutation chain 后，缺少 revision 快照、有限重建和当前工作区文件回放契约。
+- **根因类别**: 评测泄漏 / 发布工程 / 状态管理 / 补全模型
+- **修复**: 新增冻结 V1 评测身份、workspace-conditioned 200-checkpoint holdout、Oracle@8/完整 mixed/双 p90/归因报告与 RC 证据哈希；查询改读最近原子提交快照，Worker 不可用时禁用 Hybrid，首次故障从工作区文件幂等重建、重建期间 mutation 延后提交，第二次才熔断。24MiB 项目自有合成池只产出隔离候选，未获独立证据不得发布。
+- **教训**: “测试通过”必须说明通过的是治理、运行时还是模型质量；异步索引的读取可用性必须建立在原子快照上，恢复必须从事实源回放而不是延续损坏内存状态。
+
+## 检查清单追加
+
+- [ ] seeded 场景、固定探针和 holdout 安全检查不得被写成模型质量通过；RC 必须核对模型、输入、holdout、评测器、质量证据和学习曲线哈希。
+- [ ] V1/V2 对照必须使用同一冻结 holdout，并分别报告 Top-1、Oracle@8、usable、false trigger、完整 mixed、全请求/可见 p90 和来源归因。
+- [ ] Hybrid query 不得等待全部 mutation；Worker 不可用时禁止主线程同步索引，首次重建期间到达的 mutation 不得丢失。
+- [ ] 合成训练正文与候选必须保持可再生且 Git 忽略；任何档位未通过独立质量闸门都不得覆盖正式 public 资产或启动 V2.1。
+
+## BUG-105: 合成语料输出依赖调用目录且冻结 V1 提交后身份漂移
+
+- **现象**: 从 package 级命令调用 24MiB synthetic 生成器时可能在 `packages/app/scripts/` 下产生第二份训练池；提交钩子格式化冻结 V1 runner 后，快照 manifest 仍保存旧 runner/tree SHA，导致离线评测身份校验失败。
+- **根因**: 生成器以 `process.cwd()` 作为默认仓库根目录，而不是以生成器模块位置定位；冻结快照的 manifest 在 lint-staged 改写 runner 后没有按最终提交字节重新计算聚合身份。
+- **根因类别**: 发布工程 / 评测证据 / 路径边界
+- **修复**: synthetic 生成器默认从 `import.meta.url` 推导仓库根目录，同时保留测试用 `workspaceRoot` 注入；按格式化后的 runner 最终字节更新 `runnerSha256`、快照 `treeSha256` 和运行时固定身份常量。RC gate 继续以 code 10 拒绝未获资格的公共 legacy 模型。
+- **验证**: 单测覆盖生成器默认根目录、冻结 V1 完整性与 fb46b1e golden、生产包隔离，并明确断言当前 `--autocomplete-only` 因 web-local v4 未获资格返回 code 10。
+- **教训**: 可复现训练入口不能继承调用者 CWD；任何由内容哈希标识的冻结证据都必须以提交钩子处理后的最终字节为准。
+
+## 检查清单追加
+
+- [ ] 训练/评测脚本的默认工作区必须由模块位置或显式参数确定，不得依赖调用者 CWD。
+- [ ] 冻结快照进入提交钩子后必须重新验证 runner、逐文件和聚合 tree SHA；格式化通过不能替代身份校验。
+
+## BUG-106: 公共 v4 丢失英文词边界且同质扩池掩盖结构性不可达
+
+- **现象**: 24MiB 合成池扩充后 public L3 的 context hit 固定在 17.5%、usable 始终为 0；正式 validation 的英文正例没有任何可见触发，总触发率随扩池反而降到 5.5%。旧诊断数据曾被误读成公共模型质量，造成“已经接近发布”的错误预期。
+- **根因**: 英文字符路径只保留词内字母并用字母正则截断 continuation，光标处于完整单词末尾时丢失前导空格和标点；词级表只在正文已以空格结尾时查询。75 个英文正例全部处在这一断路上。与此同时，六模板合成池重复同一局部 N-gram，扩池只增加计数而不增加模式覆盖；在英文命中为 0 时，即使 75 个中文正例全部触发，200 个 checkpoint 的理论上限仍只有 37.5%。
+- **根因类别**: 补全模型 / 训练分布 / 评测口径 / 发布工程
+- **修复**: 停止调参公共 N-gram v4，保留个人与 Notebook N-gram，公共 L3 改为固定短语库上的微型 Transformer 与显式 abstain；英文短语保留前导边界和完整单词，中文短语设置有效字符下限。训练改用 30MiB 分组干净池、固定六次矩阵和 Oracle@32 前置停损；重新冻结多参考 cold/workspace validation/final，并以绝对可用率、分语言指标和真实运行时证据决定发布。
+- **教训**: 训练量不能修复表示空间里不存在的边界。扩池前必须先证明目标 continuation 可被模型格式表达，并把理论覆盖上限、Oracle 与绝对分母写入闸门。
+
+## 检查清单追加
+
+- [ ] 公共英文模型必须把词间空格、标点和完整词边界作为一等特征；不得只在“用户已输入空格”后查询词级 continuation。
+- [ ] 扩大语料前必须计算各语言/类别在当前表示下的理论触发上限；结构性不可达时先改模型，不得继续堆同质数据。
+- [ ] Oracle 候选能力未达到前不得训练或调节发布阈值；validation 可选型，final 只能在候选完全冻结后消费一次。
+
+## BUG-107: V2R 短语库与 WASM 构建在训练前仍存在不可达和仓库作用域陷阱
+
+- **现象**: 初版 V2R 会优先收录较长 continuation，并只从生成器显式 slot 采样中文边界；即使 Transformer 训练成功，冻结 checkpoint 的可接受短前缀也可能根本不在 8,192–16,384 短语库中。精简 ONNX Runtime 在链接末尾又会因仓库根 `type: module` 把其 CommonJS 后处理脚本当作 ESM；直接依赖 stock runtime 还会把约 13MiB WASM 打进应用。
+- **根因**: 训练管线把“分类器能否学会”放在“输出空间是否包含答案”之前，没有按 checkpoint 聚合嵌套完整词/短语变体并计算短语库 Oracle 上界；构建脚本也没有隔离第三方工具链的 Node package scope，Vite Worker 未固定外置 WASM 条件。
+- **根因类别**: 补全模型 / 发布工程 / 构建边界 / 评测口径
+- **修复**: 短语提取改为英文完整词边界的嵌套变体与中文 3–12 字短语，中文训练文档增加确定性内部光标采样；按同一光标聚合变体并把缺失变体只记录为 bank coverage，禁止生成 `bank-miss` abstain。正式矩阵在 CPU 训练前对 cold/workspace validation 分别执行总体 ≥70%、中英文各 ≥65% 的表示能力预检。ORT 固定到 v1.27.0 commit，在忽略的工具链根写入带哈希的 CommonJS scope，关闭未使用的 ML/contrib/generation 算子，并由 Vite 外置加载已验证的 reduced WASM；实测构建产物为 3,695,459 字节。
+- **教训**: 神经分类器不能选中标签空间里不存在的答案；可复现第三方构建也必须隔离宿主仓库的模块语义，并把兼容措施纳入证据哈希。
+
+## 检查清单追加
+
+- [ ] 固定短语库训练前必须在独立 validation 上计算表示能力 Oracle；失败时停止 CPU 训练，不能用 loss 或内部集分数替代。
+- [ ] 同一光标的所有合法短语变体必须共同参与 bank coverage；不得因一个长变体缺失而把已有短变体误标为 abstain。
+- [ ] 第三方构建脚本的 ESM/CommonJS 作用域必须显式隔离并绑定哈希；运行时不得回退到未验证的 stock WASM。
+
+## BUG-108: V2R 单标签评测误判合法前缀且训练输入证据无法闭环
+
+- **现象**: 同一光标存在多个合法完整词/短语前缀时，训练数据只保存一个主标签；模型输出另一个合法前缀仍被 Top-1/Oracle@32 记错。与此同时，v5 verifier 把 training-data report 的 `reportSha256` 与 corpus `inputTreeSha256` 直接比较，但两者定义不同且没有绑定 generator report，导致真实 v5 证据永远无法满足校验。
+- **根因**: 短语库表示能力按多参考判定，但训练样本、损失和内部评测仍沿用单类分类语义，训练/评测合同不一致；manifest 只保存输入树值，没有把能从 selection 文档 ID+内容哈希推导该值的 generator report 纳入 evidence closure。
+- **根因类别**: 补全模型 / 评测口径 / 发布工程 / 证据完整性
+- **修复**: training-data 升级为 v2，每个光标保存确定性主标签和最多 32 个合法标签，训练损失最大化合法集合总概率，Top-1/Oracle@32 按任一合法前缀判定；候选资格新增 development 阈值校准和 internal selection 质量硬门槛。v5 manifest 新增 generator/bundle 绑定，verifier 从 selection 重算 input tree，并交叉校验 generator、training-data、training/quantization report 与模型资产。
+- **教训**: 多参考只存在于评测器而不存在于训练标签，会同时浪费学习信号并制造假阴性；内容寻址证据必须能从更上游事实独立重算，不能让两个不同语义的 SHA 字段碰巧相等。
+
+## 检查清单追加
+
+- [ ] 固定短语分类器的训练损失、Top-1 和 Oracle 必须使用同一组合法完整前缀；主标签只能用于确定性权重，不能成为唯一正确答案。
+- [ ] manifest 的训练输入树必须从 selection 的逐文档 ID+内容哈希重算，并绑定 generator 与 training-data report；禁止比较名称相似但语义不同的 SHA 字段。
+
+## BUG-109: V2R 候选发布资格与生产链评测形成循环依赖
+
+- **现象**: Worker 正确要求 `runtimeEligible/qualityGatePassed/releaseEligible` 全部为真才加载 public manifest，但 validation 又要求候选通过生产 Router/Worker 实测后才能取得 `qualityGatePassed/releaseEligible`。现有脚本没有隔离候选入口，只能选择提前伪造资格或根本无法评测。
+- **根因**: 生产 manifest 与候选评测 manifest 共用同一加载资格合同，没有把“内部训练闸门已过、允许盲测”与“正式 final 已过、允许发布”建模为互斥状态；Playwright 默认还会重新执行普通 E2E build，覆盖任何临时评测产物。
+- **根因类别**: 发布工程 / 评测证据 / 补全模型 / 构建边界
+- **修复**: 新增显式 `autocomplete-v2r-evaluation` Vite mode 和不可覆盖的候选构建器。候选必须先通过内部质量、训练输入、量化、精简运行时与语料绑定，manifest 固定为 `evaluationOnly:true`、`runtimeEligible:true`、`qualityGatePassed:false`、`releaseEligible:false`；只写 `dist/autocomplete-v2r-evaluation`，普通 production/E2E mode 忽略候选 URL，Worker 默认拒绝该 manifest。评测时只预览已经冻结的 evaluation dist，避免 Playwright 重建覆盖；bundle 体积证据首次生成后不可被不同内容改写。
+- **教训**: “允许评测”和“允许发布”是两种不同能力。候选通道必须在构建期显式、运行时可审计、生产包不可达，不能靠临时篡改同一组发布布尔值打破循环依赖。
+
+## 检查清单追加
+
+- [ ] 未发布模型只能由显式 evaluation-only 构建加载；普通 production/E2E mode 必须忽略候选 manifest 覆盖。
+- [ ] evaluation manifest 必须保持质量/发布资格为 false，且候选构建不得写入 `packages/app/public`。
+- [ ] 候选评测前必须交叉验证内部质量、训练输入、量化和 reduced runtime；体积报告不得被不同内容覆盖。
+
+## BUG-110: V2R 项目生成器的局部模板占比合格但文档骨架仍高度同质
+
+- **现象**: 初版 30MiB 项目自有短笔记池按模板 ID 统计时占比很低，但大量文档仍复用相同段落顺序、固定标签和局部三元组；短语库中的少数结构短语由过高比例文档共同贡献，继续扩池只会放大伪模式。
+- **根因**: 治理只计算逐模板 ID 与全局 5-gram 频率，没有对“一个短语覆盖多少篇不同文档”和逐文档 trigram 集中度设闸；六类骨架通过参数替换制造了表面差异，却没有增加真实写作结构的熵。
+- **根因类别**: 补全模型 / 训练分布 / 语料治理
+- **修复**: 项目生成器升级到 v3.1，以 43 组基础/组合 frame、16 种结构、扩展语义槽和 6 种 Markdown 布局生成五类中英文短笔记；新增逐文档 trigram ≤8%、结构性短语文档覆盖率 ≤10% 的硬闸，普通单词覆盖率只作透明诊断。30MiB 选择报告固定 generator version、seed、selection/input tree SHA 与各集中度指标。
+- **教训**: 模板 ID 多不等于语料多样。训练治理必须从模型真正看到的局部模式和跨文档支持分布衡量集中度，不能只检查生成器参数组合数。
+
+## BUG-111: 短语库缺失被误标为 abstain，拒答训练与 false-trigger 指标同时失真
+
+- **现象**: 8,192 短语诊断集中约 8 万个 abstain 样本来自 `bank-miss`，真正的文档末尾静默只有约 600 个；降低 abstain 类权重能提高触发率，却把误触发推高，恢复权重后触发率又骤降，指标无法代表用户是否需要补全。
+- **根因**: 管线把“真实 continuation 不在固定输出空间”解释为“用户希望静默”。这是表示覆盖失败，不是拒答监督；同时对 abstain 使用 0.25 的特殊类权重，进一步人为倾向触发。旧 training-data v2 缓存没有契约字段阻止这类样本被复用。
+- **根因类别**: 补全模型 / 标签语义 / 评测口径 / 缓存迁移
+- **修复**: training-data 升级为 silence-safe v3 并使旧缓存强制失效；每篇文档只在文档末尾生成一个 abstain，`bankMiss` 必须为 0、`documentEnd` 必须等于 abstain 总数，表示缺口只保留在 `bankCoverage`。abstain 类权重固定为 1，训练器、evaluation bundle、发布器和独立 verifier 交叉校验该语义；192-byte 输入同步固定为 48 个有序 4-byte patch 并纳入训练/运行时证据。
+- **教训**: 输出空间没有答案与用户不需要答案是两种相反事实。任何拒答模型都必须从真实静默位置学习，表示失败只能驱动扩充候选空间，不能反向训练成拒答。
+
+## 检查清单追加
+
+- [ ] 生成语料治理必须检查逐文档 n-gram 与结构性短语跨文档集中度；参数/模板 ID 数量不能替代模型视角的多样性。
+- [ ] bank miss 只能计入候选表示覆盖率，不得生成 abstain 标签或计入 false-trigger 静默分母。
+- [ ] abstain 样本必须能追溯到真实静默位置；训练报告须绑定原因计数与固定类权重，旧语义缓存必须通过 schema 升级失效。
+
+## BUG-112: Evaluation fixture 用对象型来源表掩盖真实数组不可解析
+
+- **现象**: 30MiB 物化器正确把 `source-registry.json` 写成来源对象数组，但 evaluation bundle 构建器通过 `requireRecord` 只接受普通对象；单测 fixture 又写成 `{ schema, sources }` 对象，导致测试全部通过而任何真实候选都会在读取来源证据时失败。
+- **根因**: selection、独立 source registry 和 generator report 只有 SHA 字段层面的松散绑定，没有共享可执行的 JSON 形态与 generator version/seed 契约；fixture 没有复用真实物化器输出形状。
+- **根因类别**: 发布工程 / 证据完整性 / 测试替身
+- **修复**: evaluation builder 新增严格数组解析，fixture 改用真实数组形态；构建器、publisher 与独立 verifier 同时校验 selection sources canonical hash、project-owned MIT/外部 CC0、冻结 generator v3.1 version/seed，并从 selection 文档 ID+内容 SHA 重算 input tree。
+- **教训**: 内容哈希只能证明“某些字节没变”，不能证明两份证据表达同一事实。发布 fixture 必须保持生产文件的顶层形态，关键身份还要跨文件语义校验。
+
+## 检查清单追加
+
+- [ ] 证据 fixture 必须与生产物化器输出保持相同的数组/对象顶层形态，不得为测试方便另造 schema。
+- [ ] selection sources、source registry、generator report 的 version/seed/license 与 input tree 必须跨文件重算校验；只比较各自 64 位 SHA 不足以放行。
+
+## BUG-113: RC Gate 只验证旧 v4，真实 v5 发布后仍会永久 code 10
+
+- **现象**: V2R publisher 能原子安装 web-local/release 两份 v5 manifest 和神经资产，但 `release-rc-gate.mjs` 的模型列表仍硬编码两份 `baseline-ngram.*` v4；即使全部 v5 final 证据通过，RC 仍会先因旧 v4 未获资格而拒绝。
+- **根因**: 新的 `verify-autocomplete-v2r-evidence.mjs` 已实现完整验证，却没有接入最终 RC 路由；旧 gate 不区分“尚未安装 v5”和“v5 已开始原子迁移”两种状态。
+- **根因类别**: 发布工程 / 证据路由 / 迁移边界
+- **修复**: RC gate 检测到任一 v5 public manifest 后，强制调用 V2R 独立 verifier 并要求两个 profile 同时存在、等价且证据闭环；没有任何 v5 时才走旧 v4 fail-closed 分支。当前无 v5 资产的仓库继续稳定返回 code 10，未来部分安装也不能回退 v4 绕过。
+- **教训**: 实现新发布器不等于打通发布链；最终 gate 必须有明确的版本路由和部分迁移失败语义，否则新证据永远不可达或可被旧路径绕过。
+
+## 检查清单追加
+
+- [ ] 新模型格式的 publisher、独立 verifier 和最终 RC gate 必须在同一变更中接通；至少测试“无新格式、部分安装、双 profile 完整安装”三种状态。
+- [ ] 检测到任一新格式 manifest 后不得回退旧模型证据；部分原子迁移必须 fail closed。
+
+## BUG-114: V2R 候选能构建但真实评测桥、WebView smoke 与 CI 路由未闭环
+
+- **现象**: `autocomplete-v2r-evaluation` 能生成隔离候选包，但该 mode 不创建生产 Router 诊断桥，Playwright 无法取得 L3 候选与真实延迟；Tauri smoke 又固定读取 v4 manifest，即使 v5 候选通过 final 也无法生成 verifier 要求的 Worker 推理回执。独立 v5 verifier 没有 CLI，普通 CI 也不会检查部分安装。
+- **根因**: 候选构建、浏览器质量评测、真实 WebView2 和最终发布分别实现，却没有共享一个编译期 evaluation 身份与全资产哈希；旧 smoke/CI 入口仍假设公共模型只有 v4。
+- **根因类别**: 发布工程 / 评测证据 / 构建边界 / 补全模型
+- **修复**: evaluation mode 专属启用诊断桥，正常 production mode 继续编译期关闭；Tauri smoke 增加互斥 V2R 模式，逐项验证 ONNX、短语库、metadata、reduced WASM，并要求真实 Worker 推理、离线重载和 WebView2。新增不可覆盖的单 holdout runner、evaluator tree 生成器、post-final Tauri 编排、v5 verifier CI/RC CLI 与独立 Windows RC workflow；候选始终保持质量/发布标志为 false，只有 smoke 后的原子 publisher 可安装两份正式 profile。
+- **教训**: “存在构建器、评测器和发布器”不等于发布链闭环。未发布候选必须在同一个不可伪造的 evaluation 身份下贯穿 Web、Tauri 和证据哈希，同时保证正常生产包不可达。
+
+## BUG-115: Resolver 的字符上限会把神经候选第一个英文长词切成残词
+
+- **现象**: 公共短语库正确保存 ` configuration` 等带前导空格的完整单词，但默认 12 字符 ghost 上限会输出 ` configurati`；当截断片段中只有开头空格时，旧逻辑找不到 `boundary > 0`，残词直接进入信息量与最终可用率评测。
+- **根因**: Resolver 只在已截断文本中寻找最后一个普通空格，没有先判断切点是否位于英文单词内部，也没有处理“前导空格 + 第一个长词”的零个完整词情况。
+- **根因类别**: 补全模型 / 英文词边界 / Resolver
+- **修复**: 按 Unicode code point 截断后检查切点两侧；只有切在英文词内部时才回退到前一个完整词边界，若第一个完整词本身超过上限则拒绝该候选。新增神经 L3 回归测试，验证前导空格保留且任何可见候选不以残词结尾。
+- **教训**: 模型输出空间保证完整词并不代表 UI 截断后仍完整；长度限制、去重、门控和 ghost 渲染的每一层都必须维持词边界不变量。
+
+## BUG-116: Workspace holdout 只引用 support ID，不能证明模式真的有两篇独立支持
+
+- **现象**: workspace v3 checkpoint 只要填写两个存在的 `supportDocumentIds` 就能通过，即使两篇文档与 `patternId` 无关或彼此近重复；E2E 随后把这些无关文档注入 Notebook/Hybrid，workspace-conditioned 结论失去含义。
+- **根因**: support 文档 schema 没有声明其支持的抽象模式，validator 仅检查 ID、语言和与目标的精确不等，未检查 support—support、support—target 整篇近重复。
+- **根因类别**: 评测泄漏 / holdout 治理 / 补全模型
+- **修复**: workspace support 文档必须列出唯一且合法的 `patternIds`；每个 complete checkpoint 引用的至少两篇文档都必须声明同一模式。冻结校验新增 support—support 与 support—target 整篇近重复为 0，并把两项计数写入 audit。
+- **教训**: “引用了两篇文档”只是关系存在，不是学习信号存在。workspace-conditioned 证据必须把模式归属和文档独立性都变成可执行约束。
+
+## 检查清单追加
+
+- [ ] evaluation-only 模型必须在 production Router、真实 Tauri WebView 和最终 verifier 中保持同一候选/资产身份；正常 production build 不得暴露诊断桥或候选 URL。
+- [ ] 英文候选经过任何字符上限后都必须重新验证完整词边界；第一个词超限时拒绝，不得输出残词。
+- [ ] workspace holdout 的每个模式必须由至少两篇显式声明该模式且整篇不近重复的支持文档提供；只检查两个 support ID 不足以放行。
+
+## BUG-117: 训练前语料治理提前读取 final，盲测只剩名义隔离
+
+- **现象**: 正式 RC 工作流虽然在候选冻结后才下载 final artifact，但 30MiB 物化器默认要求并读取 cold/workspace final，用于训练—holdout 重叠治理；只要正式训练能启动，训练进程同权限范围内就已经能看到 final 明文。
+- **根因**: “训练前重叠治理”和“独立 final 盲测”被合并为同一个四 holdout 输入，没有把 validation 重叠审计与候选冻结后的 final 重叠审计拆成两个时序不同的证据。
+- **根因类别**: 评测泄漏 / 语料治理 / 发布证据 / 补全模型
+- **修复**: 物化器只接受两套 validation，并写入 `validation-only-before-candidate-freeze-v1` 范围；RC 先按独立保管方提供的 final SHA 创建不可复用 ref，再下载明文。聚合阶段从冻结 selection 重读并逐文件校验训练正文，生成 `final-overlap-audit.json`，其输入树、两套 final 树、精确/近似重叠和报告 SHA 由质量报告、消费回执、publisher、v5 manifest 与独立 verifier 交叉绑定。
+- **教训**: 盲测是数据可见性的时序约束，不是文件名或声明。训练阶段不得为“提前证明无重叠”而打开 final；final 重叠审计必须发生在候选不可变之后，失败也必须消耗数据集。
+
+## 检查清单追加
+
+- [ ] 训练前语料治理只能读取 validation；final 必须在候选身份不可变且消费 ref 创建后才解封。
+- [ ] train–final 重叠审计必须绑定冻结 selection、逐文件内容 SHA、两套 final 数据树和 evaluator 源码树；审计失败不得回到同一 final 上继续训练。
+
+## BUG-118: 过滤 bank miss 后把条件 Oracle 误称为候选能力
+
+- **现象**: 8,192 档完整训练在 internal selection 上报告 Oracle@32 63.28%，但同一短语库在真实写作诊断集上只有 10.5% 绝对表示率；扩大到 16,384 也只有 13%。两个数字看似矛盾，容易诱导继续长训练。
+- **根因**: `training-data.ts::writeSplitSamples` 只把 `selectTrainingTarget` 命中的正例写进 JSONL，bank miss 仅进入旁路 `bankCoverage`；Python 的 `metrics()` 又只以 JSONL 行数为分母，并把结果命名为 `candidateCapabilityPassed`。因此 63.28% 实际是“短语已存在时的条件排序 Oracle”，不是开放写作候选上限。
+- **根因类别**: 评测口径 / 补全模型 / 候选表示 / 发布证据
+- **修复**: 新增 release-ineligible 的真实写作短语表示诊断，完整运行 8,192/12,288/16,384 三档并记录逐语言上限；Python 明示 `conditionalOnRepresentablePositiveSamples` 与 `conditionalRankingOraclePassed`，固定短语架构停止期间强制 `candidateCapabilityPassed:false`。新增 architecture-stop 记录，由长训练入口、publisher 和 v5 verifier 共同拒绝同一路线继续执行或发布。
+- **教训**: 只在“模型有答案”的样本上计算 Oracle 会把表示失败从分母里消失。候选生成架构必须先在未过滤机会集上证明 coverage，再讨论排序精度；条件指标不得命名为绝对候选能力。
+
+## 检查清单追加
+
+- [ ] Oracle/usable 的分母必须包含候选空间无法表示的正例；若训练损失无法编码 bank miss，至少要单独报告并绑定未过滤 representation preflight。
+- [ ] 架构停止记录必须同时阻断训练、发布和 RC verifier；只在计划文档写“停止”不足以防止旧命令误跑。
+
+## BUG-119: 已停止模型仍默认进入生产依赖图且同一 v4 字节保留双 profile
+
+- **现象**: 普通生产构建虽然没有可运行的公共 L3，却仍默认构造 `public-phrase-transformer-v1` Worker，并把 ONNX Runtime 代码打入应用；与此同时，`baseline-ngram.web-local.compact.*` 与 `baseline-ngram.v1.compact.*` 的模型字节和 SHA 完全相同，训练、publisher 与 RC 仍把它们当成两个公共模型来源。
+- **根因**: “模型资格 fail-closed”只约束了 manifest 加载，没有同步撤销默认 factory、运行时依赖和构建配置；发布协议又把部署 profile 误建模为两份物理模型，而不是一个 canonical 资产。架构停止、生产依赖图和模型注册表没有形成同一个状态转换。
+- **根因类别**: 补全模型 / 生命周期 / 构建边界 / 发布工程
+- **修复**: `CompletionPublicEngine` 收口为唯一、模型无关且默认未绑定的插槽；移除 V2R Worker、ONNX adapter、默认 factory、专用测试与 `onnxruntime-web` 依赖。公共目录只保留 `baseline-ngram.web-local.compact.*`，训练配置、publisher、证据 verifier 和 RC 只认该 canonical profile；冻结 V1 和 V2R stop 证据继续隔离在 `scripts/`。
+- **教训**: fail-closed 不等于零成本，也不等于唯一真相源。停止一个模型时必须同时清理默认构造、依赖、构建产物、重复资产和发布脚本；模型版本只能占用一个公共插槽和一个 canonical 路径。
+
+## 检查清单追加
+
+- [ ] 每次停止或替换公共模型时，必须同时检查 factory、Worker/WASM/原生依赖、构建配置、public 资产、训练输出、publisher、verifier 与 RC 路由。
+- [ ] 公共 L3 只能有一个 canonical 模型路径；环境/profile 差异不得通过复制相同模型字节实现，评测快照不得进入生产依赖图。
+
+## BUG-120: 公共引擎把整篇正文和可写候选权限交给异步后端
+
+- **现象**: 通用 Public L3 插槽虽已收口为单实例，但请求仍携带光标前整篇文档，异步引擎可直接返回包含 `from/providerId/source/sourceLayer/priority` 的完整候选；统计式 V2S 接入后会产生不必要的跨线程正文复制，并让损坏 Worker 响应越过宿主插入与排名边界。
+- **根因**: `CompletionPublicEngine` 从已停止 V2R 继承了“模型即可信 Provider”的宽接口，没有把模型所需的短上下文、原始打分输出和宿主拥有的编辑权限分开；Router 只负责 deadline/epoch，没有强制候选数量、语言、mixed、长度和字段所有权。
+- **根因类别**: 补全模型 / 隐私边界 / 类型边界 / 生命周期
+- **修复**: Public V2S 协议固定宿主按完整 code point 只传最后 256 个 UTF-8 字节；Worker 仅返回原始文本、语言与分数，Router 校验后统一盖章插入位置、来源、层级、provider 和优先级。Worker/CSP/资产失败时关闭公共 L3，禁止主线程同步推理。
+- **教训**: 模型候选是非可信数据，不是编辑器命令；最小上下文和最小返回权限应由宿主协议强制，而不能依赖具体 Worker 自律。
+
+## 检查清单追加
+
+- [ ] 公共模型请求不得复制整篇正文；截断必须按 UTF-8 字节预算且不能切断 Unicode code point。
+- [ ] 异步生成器不得控制 `from/sourceLayer/priority/learnable`；Router 必须验证候选数量、ID、置信度、单行、语言、mixed、长度、epoch 与 deadline。
+- [ ] 新公共架构必须先在未过滤机会集证明绝对 Oracle，再训练 Gate；bank miss 不得再次消失于分母或伪装成 abstain。
+
+## BUG-121: MKN 淘汰按阶数排序且沿用完整模型回退权重
+
+- **现象**: 首轮 3MiB V2S 候选的两个语言分区都只保留 5 阶记录，2–4 阶回退实际为空；改为信息量排序后虽然恢复多阶记录，但被剪枝上下文仍沿用完整模型的 backoff，局部概率总质量可下降到约 25%，导致不同上下文的分数、Gate 特征和触发阈值不可比较。
+- **根因**: 训练器把“阶数越高”误当作压缩效用，并用平铺记录字节估算替代真实 Trie 成本；选择子集后又直接复制剪枝前的 `lambda`，没有按保留的 local mass 重算 `1 - ΣP(local)`。训练侧用逐层 Q16 舍入，运行时却使用浮点递推，边界同分仍可能换序。
+- **根因类别**: 补全模型 / 概率归一化 / 序列化 / 评测可信度
+- **修复**: 淘汰改为确定性相对熵/真实 Trie 摊销字节排序，预算不足时继续扫描可容纳记录；每个嵌套预算按保留 local mass 重算 backoff。MKN 二进制升级为压缩 TypedArray Trie v2，运行时按同一 Q16 公式逐层递推，并在测试中验证多阶保留、预算嵌套、归一化和训练—运行时容器往返。
+- **教训**: 语言模型压缩不能只验证“文件没超预算”；必须同时验证各阶覆盖、剪枝后概率质量、编码器/运行时位级语义和真实候选指标。
+
+## 检查清单追加
+
+- [ ] MKN/Trie 淘汰报告必须列出每语言、每阶记录数；任一计划中的回退阶次意外归零都应阻断候选评测。
+- [ ] 删除 continuation 后必须重算该上下文的 backoff，并验证 `Σlocal + lambda = 1`（量化容差内）。
+- [ ] 训练侧与运行时的定点概率递推必须共享 golden，不能用“数学近似相同”替代位级一致。
+
+## BUG-122: V2S 发布验证器相信自报候选与治理汇总
+
+- **现象**: 候选描述符只要提交格式正确的 200 条 observation、低延迟数组和通过布尔值，即使这些候选并非绑定 `.bin` 的真实输出，也可能得到 `runtimeEligible/qualityGatePassed/releaseEligible=true`；selection verifier 同时只检查 upstream 存在 `sources` 数组，没有逐文档证明来源、许可证和正文身份。
+- **根因**: 证据链只重算“报告内部的算术”，没有用绑定模型和冻结 `target.text/cursorOffset` 重放候选，也没有从 upstream source/document 清单重建治理事实。模型、输入、输出和发布结论之间只有字符串 SHA 关联，没有执行语义闭环。
+- **根因类别**: 发布证据 / 评测可信度 / 语料治理 / 补全模型
+- **修复**: 新增候选专用确定性 replay runner，经真实 `MarkdownPredictor`、Resolver 与绑定 V2S 二进制重算 Public-off、未门控 Public、门控 Public 和 Combined Top-1；verifier 必须逐 checkpoint 比对重放结果。selection/governance 改为逐文档回溯批准 source、许可证、content root、语言、类别、字节和 SHA，并从原始条目重算汇总。任何缺失重放、来源越界或自报结果不一致继续 fail-closed。
+- **教训**: 哈希只能证明“文件没变”，不能证明“文件里的结论是真的”。质量证据必须从绑定输入和绑定可执行模型重新产生；治理报告也必须由原始来源清单重算，不能验证自己的声明。
+
+## 检查清单追加
+
+- [ ] 正式质量 verifier 必须用绑定模型、冻结正文和光标重放候选；只重算 observation JSON 指标不构成模型质量证据。
+- [ ] selection 中每篇文档都必须能回溯到批准 upstream document/source，并复核许可证、content root、语言、类别、字节与内容 SHA。
+- [ ] 运行时延迟和 WebView 证据必须由 RC 当前执行链重新产生并绑定模型/commit；预填的低延迟数组或通过布尔值不得直接放行。
+
+## BUG-123: 双语物理分区却按总体分数选择单一 tokenizer
+
+- **现象**: 固定矩阵按总体 Oracle 选择 Unigram 后，最大 24MiB/5.5MiB 候选的英文 Oracle@8 仅 19/100；首档 BPE 的英文 Oracle@8 已达到 32/100，而中文表现恰好相反。继续扩大同一个全局 tokenizer 只会在两种语言之间交换损失。
+- **根因**: V2S 二进制和 MKN Trie 已按中英文物理分区，但训练矩阵仍把 tokenizer 当成全局枚举并按总体平均分选胜者，错误地把两个独立表示问题重新耦合。
+- **根因类别**: 补全模型 / 双语建模 / 训练方法 / 评测口径
+- **修复**: tokenizer 选择改为逐语言比较；只允许一次预注册的方法修正，将同一 selection、语料前缀、阶数、量化和预算约束下的英文 BPE 分区与中文 Unigram 分区合成一份 canonical 候选。合成器校验输入树、训练字节、预算、Gate 和量化参数一致，仍只写候选目录并保持 fail-closed。
+- **教训**: 物理分区必须延伸到模型选择和停止判断；总体平均不能掩盖任一语言的表示退化。
+
+## 检查清单追加
+
+- [ ] 双语模型的 tokenizer、Oracle 和停止结论必须逐语言计算；不得仅按总体平均选择同一表示方法。
+- [ ] 组合语言分区前必须证明它们来自同一冻结 selection、相同语料前缀、训练预算和序列化语义；组合不是额外超参搜索。
+
+## BUG-124: 唯一模型源码审计递归遍历 30MiB 生成缓存
+
+- **现象**: Public V2S 全量训练生成约十万篇缓存文档后，`autocomplete-single-model-source.test.ts` 的唯一 publisher 审计在全量 Vitest 中超过 5 秒；单测逻辑本身没有发现多 publisher。
+- **根因**: `walkFiles(scripts)` 先递归枚举 `scripts/corpus/_web-cache` 的全部生成文件，之后才按 `.ts/.mjs` 扩展名过滤。缓存目录并非源码审计范围，却承担了绝大多数遍历成本。
+- **根因类别**: 补全模型 / 测试基础设施 / 缓存边界
+- **修复**: 源码树遍历在目录层直接跳过 `_web-cache`，继续扫描全部受版本控制的 scripts 源码；不提高测试超时，也不把缓存产物计入唯一真相源证据。
+- **教训**: 源码闭包审计必须在递归入口排除生成缓存，不能先枚举整个语料池再做文件扩展名过滤。
+
+## 检查清单追加
+
+- [ ] 任何递归源码/依赖扫描都必须在目录层排除 `_web-cache`、构建物和报告缓存；过滤应发生在遍历前而非遍历后。
+
+## BUG-125: 架构停止后默认 factory 仍把 V2S Worker 打入生产包
+
+- **现象**: canonical V2S 资产不存在且 architecture stop 已生效，但 production build 仍生成约 22.05KB 的 `public-v2s.worker` chunk；运行时会先尝试构造默认 factory，再因 manifest 缺失返回空。
+- **根因**: 停止合同只阻断训练、publisher 和 RC，`MarkdownPredictor` 仍静态导入 `createCanonicalPublicV2sEngine`。Vite 因静态依赖保留整条 Worker 构造链，导致停止态仍占用生产依赖图。
+- **根因类别**: 补全模型 / 生命周期 / 构建边界 / 唯一真相源
+- **修复**: 生产 Predictor 只安装构造时显式注入的 `CompletionPublicEngine`，不再自动导入 V2S factory；V2S engine/factory/Worker 源码保留给单元测试和隔离评测，生产 bundle 不可达。
+- **教训**: architecture stop 必须同步撤销默认构造入口；“manifest 不存在所以不会运行”不能替代生产依赖图清理。
+
+## 检查清单追加
+
+- [ ] 公共模型进入 architecture stop 后必须检查生产 bundle 是否仍包含其 factory、Worker、WASM 或推理依赖；无运行资格的实现不得依赖仅靠 404/空 manifest 关闭。
+
+## BUG-126: 连续学习 E2E 把文件重挂载与不可启动的冷态接受混进 Personal L2 评测
+
+- **现象**: `22-autocomplete-continuous-learning.spec.ts` 清空正文后可能因自动保存与 keyed editor 重挂载切回另一篇笔记；即使规避焦点问题，固定冷态候选全部错误，Tab 接受数为 0，却仍要求“重复接受后提升”。
+- **根因**: 用例同时承担文件生命周期、ghost 交互和 Personal L2 学习三种职责；它依赖键盘清空当前真实笔记，并假定冷启动必然先给出可接受候选。Public L3 停止后，这个启动前提不再成立。
+- **根因类别**: 补全模型 / E2E 隔离 / 评测口径 / 生命周期
+- **修复**: Personal L2 用例改为通过生产 Predictor 的浏览器 bridge 比较冷态诊断与显式接受历史后的学习态诊断；接受历史仍调用产品 `acceptCompletion(..., learn:true)` 路径。真实 Tab、Escape、Shift+Tab 与 blur 契约继续由 `15-autocomplete-journey.spec.ts` 独立覆盖，不再修改笔记正文或触发自动保存。
+- **教训**: 学习评测必须先提供真实可接受事件；冷态没有正确候选时，不能用“零次接受”证明接受学习失败。文件保存与编辑器重挂载也不应成为模型学习基准的隐含前置条件。
+
+## 检查清单追加
+
+- [ ] Personal L2 学习基准必须显式区分冷态候选能力、接受事件注入和学习后排序，不得假定失格 Public 模型能提供首次正确候选。
+- [ ] 补全质量 E2E 不应通过清空真实笔记制造训练轮次；Tab/失焦交互与 Predictor 学习指标应由职责单一的用例分别验证。
+
+## BUG-127: Architecture stop 在 CLI 与 CI 证据边界发生语义分叉
+
+- **现象**: 停止态执行 `autocomplete-v2s train/repack-gate` 时，CLI 会先读取不存在的 gate samples 并报 ENOENT；同时 CI/RC 的 JavaScript verifier 只验证 stop 身份字段和自哈希，重算自哈希后的 lifecycle/gates/Oracle 篡改仍可能被报告为 fail-closed stop。
+- **根因**: 底层 trainer/repack 有统一 stop guard，但 CLI 在进入底层前自行读取输入；训练侧 TypeScript 与发布侧 JavaScript 又维护了强度不同的 stop 校验合同。
+- **根因类别**: 补全模型 / 生命周期 / 发布证据 / 类型边界
+- **修复**: CLI 的 train 与 repack 分支在读取任何 gate input 前调用 `assertV2SArchitectureActive`；JS verifier补齐 gates、Oracle 算术、frontier、bindings 和 lifecycle 校验，并增加 CLI 缺失输入及“语义篡改后重算自哈希”回归。
+- **教训**: 停止合同必须覆盖最外层入口并在任何输入访问前执行；训练、CI 和 RC 对同一停止记录必须接受与拒绝同一组语义状态。
+
+## BUG-128: 视觉基线平台漂移与自报式 RC 证据形成假闸门
+
+- **现象**: Linux CI 运行 Halo Canvas 像素测试却只有 Win32 基线；通用 RC gate 仅相信 machine-evidence v1 自报的命令名和 exitCode，还要求受版本管理 manifest 内的 commit 等于包含该 manifest 的 HEAD，既可伪造又无法形成合法固定点。
+- **根因**: 像素证据没有明确平台所有权；RC 把同一状态文件同时当 required cases、执行结果和 PASS 结论，并错误地让证据 commit 自引用自身 SHA。
+- **根因类别**: CI / 发布证据 / 视觉回归 / 状态管理
+- **修复**: Linux 三浏览器 E2E 排除 `@windows-visual`，新增 Windows Chromium job 实际执行 Win32 基线；修正 Playwright artifact 路径。永久删除 machine-evidence v1 的 PASS 路径，通用 RC 在候选 commit、只读原始报告、结构化二次转录和证据 commit 的 v2 协议实现前明确 fail-closed。
+- **教训**: 平台专属像素基线必须由对应平台真实执行；证据不能自报 PASS，也不能在内容中绑定包含自身的 commit。无法闭环时应阻断，而不是保留看似严格的伪闸门。
+
+## 检查清单追加
+
+- [ ] Architecture stop 必须从 CLI 到 trainer/publisher/RC 全链路在输入读取前执行，并用重算自哈希的语义篡改测试验证各实现一致。
+- [ ] 像素基线必须声明唯一执行平台；其他平台应由 workflow 排除并由专属 job 提供实际 PASS，不能依赖缺失基线或 skip。
+- [ ] RC 证据必须区分候选 commit 与证据 commit；原始执行产物和二次转录必须独立绑定，状态 JSON 不得同时自定义 cases 与 PASS。
